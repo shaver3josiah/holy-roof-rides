@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Holy Roof Rides",
+    "slug": "holy-roof-rides",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "com.holyroofrides.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Holy Roof Rides shows your position on the map and shares it with your matched ride only while a ride is active. Location is never stored."
+      }
+    },
+    "android": {
+      "package": "com.holyroofrides.app",
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Holy Roof Rides shows your position on the map and shares it with your matched ride only while a ride is active. Location is never stored."
+        }
+      ]
+    ]
+  }
+}

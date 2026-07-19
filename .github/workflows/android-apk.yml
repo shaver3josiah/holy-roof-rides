@@ -1,0 +1,96 @@
+name: Android APK
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install app dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Prebuild native Android project
+        working-directory: app
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Reinstall dependencies (prebuild may touch package.json)
+        working-directory: app
+        run: npm ci
+
+      # Signs assembleRelease with a real upload key when the four secrets below are
+      # set on the repo. Without them the release buildType keeps Expo's generated
+      # signingConfigs.debug (see android/app/build.gradle), so assembleRelease still
+      # produces an installable, if debug-signed, APK — forks/PRs still get a usable build.
+      - name: Configure release signing
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        working-directory: app
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+          cat >> android/gradle.properties <<EOF
+          RELEASE_STORE_FILE=release.keystore
+          RELEASE_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
+          RELEASE_KEY_ALIAS=$ANDROID_KEY_ALIAS
+          RELEASE_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
+          EOF
+          # ponytail: regex-patches Expo's generated build.gradle instead of a
+          # template/plugin. Assumes the default Expo/RN signingConfigs {} +
+          # buildTypes.release { signingConfig signingConfigs.debug } shape.
+          # If a future Expo prebuild template changes that shape, this step
+          # silently no-ops and the release build falls back to debug signing.
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'android/app/build.gradle';
+          let g = fs.readFileSync(path, 'utf8');
+          g = g.replace(
+            /signingConfigs\s*\{/,
+            (m) => `${m}\n        release {\n            storeFile file(RELEASE_STORE_FILE)\n            storePassword RELEASE_STORE_PASSWORD\n            keyAlias RELEASE_KEY_ALIAS\n            keyPassword RELEASE_KEY_PASSWORD\n        }`
+          );
+          g = g.replace(
+            /(release\s*\{(?:[^{}]|\{[^{}]*\})*?)signingConfig\s+signingConfigs\.debug/,
+            '$1signingConfig signingConfigs.release'
+          );
+          fs.writeFileSync(path, g);
+          NODE
+
+      - name: Build release APK
+        working-directory: app/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holy-roof-rides-apk
+          path: app/android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Attach APK to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/android/app/build/outputs/apk/release/app-release.apk

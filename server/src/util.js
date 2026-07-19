@@ -24,6 +24,13 @@ export function hashToken(token) {
   return createHash('sha256').update(token).digest('hex');
 }
 
+/** Constant-time string comparison (hashes both sides to fixed length first). */
+export function constantTimeEqual(a, b) {
+  const ha = createHash('sha256').update(String(a)).digest();
+  const hb = createHash('sha256').update(String(b)).digest();
+  return timingSafeEqual(ha, hb);
+}
+
 /** Look up the user for a bearer token (or ?token= for WebSockets). */
 export function userForToken(db, token) {
   if (!token) return null;
@@ -37,10 +44,13 @@ export function userForToken(db, token) {
   return row ?? null;
 }
 
+// Bearer header ONLY — the ?token= query form is reserved for the /live
+// WebSocket (which authenticates itself in live.js). Keeping tokens out of
+// URLs keeps them out of proxies, browser history, and access logs.
 function tokenFromRequest(req) {
   const auth = req.headers.authorization;
   if (auth?.startsWith('Bearer ')) return auth.slice(7);
-  return req.query?.token ?? null;
+  return null;
 }
 
 /** Fastify preHandler: require an approved, logged-in member. Sets req.user. */

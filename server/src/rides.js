@@ -33,6 +33,115 @@
 //
 // Use rides, newRideId, publish, broadcast from state.js; requireUser from util.js.
 
+import { rides, newRideId, publish, broadcast } from './state.js';
+import { requireUser } from './util.js';
+
+function isFiniteNum(n) {
+  return typeof n === 'number' && Number.isFinite(n);
+}
+
+function isValidPoint(p) {
+  return !!p && isFiniteNum(p.lat) && isFiniteNum(p.lng);
+}
+
+function activeRideFor(userId) {
+  for (const ride of rides.values()) {
+    if (ride.riderId === userId || ride.driverId === userId) return ride;
+  }
+  return null;
+}
+
 export default async function rideRoutes(app) {
-  throw new Error('ride routes not implemented yet');
+  app.addHook('preHandler', requireUser(app.db));
+
+  app.get('/rides', async (req) => {
+    const open = [...rides.values()].filter((r) => r.status === 'open');
+    return { open, mine: activeRideFor(req.user.id) };
+  });
+
+  app.post('/rides', async (req, reply) => {
+    const { pickup, destination, note } = req.body ?? {};
+    if (!isValidPoint(pickup)) return reply.code(400).send({ error: 'Invalid pickup' });
+    if (!isValidPoint(destination)) return reply.code(400).send({ error: 'Invalid destination' });
+
+    if (activeRideFor(req.user.id)) {
+      return reply.code(409).send({ error: 'You already have an active ride' });
+    }
+
+    const id = newRideId();
+    const ride = {
+      id,
+      riderId: req.user.id,
+      riderName: req.user.name,
+      pickup: { lat: pickup.lat, lng: pickup.lng },
+      destination: { lat: destination.lat, lng: destination.lng, label: destination.label ?? null },
+      note: note ?? null,
+      status: 'open',
+      driverId: null,
+      driverName: null,
+      createdAt: new Date().toISOString(),
+    };
+    rides.set(id, ride);
+    broadcast({ type: 'rides_changed' });
+    return { ride };
+  });
+
+  app.post('/rides/:id/accept', async (req, reply) => {
+    const ride = rides.get(Number(req.params.id));
+    if (!ride) return reply.code(404).send({ error: 'Ride not found' });
+    if (ride.status !== 'open' || ride.riderId === req.user.id) {
+      return reply.code(409).send({ error: 'Ride not available' });
+    }
+    // One active ride at a time applies to drivers too — otherwise one
+    // driver's location would fan out to several riders (see live.js).
+    if (activeRideFor(req.user.id)) {
+      return reply.code(409).send({ error: 'You already have an active ride' });
+    }
+
+    ride.status = 'accepted';
+    ride.driverId = req.user.id;
+    ride.driverName = req.user.name;
+    publish(ride.riderId, { type: 'ride_accepted', ride });
+    broadcast({ type: 'rides_changed' });
+    return { ride };
+  });
+
+  app.post('/rides/:id/complete', async (req, reply) => {
+    const id = Number(req.params.id);
+    const ride = rides.get(id);
+    if (!ride) return reply.code(404).send({ error: 'Ride not found' });
+    if (ride.riderId !== req.user.id && ride.driverId !== req.user.id) {
+      return reply.code(403).send({ error: 'Not your ride' });
+    }
+
+    rides.delete(id);
+    publish(ride.riderId, { type: 'ride_ended', rideId: id, reason: 'completed' });
+    if (ride.driverId) publish(ride.driverId, { type: 'ride_ended', rideId: id, reason: 'completed' });
+    broadcast({ type: 'rides_changed' });
+    return { ok: true };
+  });
+
+  app.post('/rides/:id/cancel', async (req, reply) => {
+    const id = Number(req.params.id);
+    const ride = rides.get(id);
+    if (!ride) return reply.code(404).send({ error: 'Ride not found' });
+    if (ride.riderId !== req.user.id && ride.driverId !== req.user.id) {
+      return reply.code(403).send({ error: 'Not your ride' });
+    }
+
+    if (ride.riderId === req.user.id) {
+      rides.delete(id);
+      if (ride.driverId) publish(ride.driverId, { type: 'ride_ended', rideId: id, reason: 'cancelled' });
+      broadcast({ type: 'rides_changed' });
+      return { ok: true };
+    }
+
+    // Driver cancels: reopen the ride for another driver instead of losing it.
+    ride.status = 'open';
+    ride.driverId = null;
+    ride.driverName = null;
+    publish(ride.riderId, { type: 'ride_reopened', ride });
+    broadcast({ type: 'rides_changed' });
+    return { ok: true };
+  });
 }

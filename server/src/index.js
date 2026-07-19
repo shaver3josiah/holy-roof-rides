@@ -10,7 +10,24 @@ import liveRoutes from './live.js';
 /** Build the app (exported for tests). Pass ':memory:' dbPath in tests. */
 export function buildApp({ dbPath, bootstrapCode } = {}) {
   const db = openDb(dbPath);
-  const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
+  // Redact ?token= from request logs — the /live WebSocket authenticates via
+  // query string, and session tokens must never reach log files.
+  const app = Fastify({
+    logger:
+      process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT
+        ? false
+        : {
+            serializers: {
+              req(req) {
+                return {
+                  method: req.method,
+                  url: req.url.replace(/([?&]token=)[^&]+/g, '$1REDACTED'),
+                  remoteAddress: req.ip,
+                };
+              },
+            },
+          },
+  });
 
   // First person to join with this code becomes the founding deacon.
   const bootstrap = bootstrapCode ?? process.env.HRR_BOOTSTRAP_CODE ?? randomBytes(4).toString('hex').toUpperCase();

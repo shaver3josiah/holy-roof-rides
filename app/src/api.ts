@@ -1,6 +1,6 @@
 // REST + WebSocket client. Every function mirrors a route contract in
 // server/src/*.js — keep them in lockstep.
-import type { Invite, LatLng, Member, Ride, SafetyReport, User } from './types';
+import type { Church, Invite, LatLng, Member, Ride, SafetyReport, User } from './types';
 
 let baseUrl = 'http://10.0.2.2:8787';
 
@@ -67,11 +67,20 @@ export const requestRide = (
 export const acceptRide = (token: string, id: number) =>
   req<{ ride: Ride }>(`/rides/${id}/accept`, { method: 'POST', token });
 
+export const pickupRide = (token: string, id: number) =>
+  req<{ ride: Ride }>(`/rides/${id}/pickup`, { method: 'POST', token });
+
 export const completeRide = (token: string, id: number) =>
   req<{ ok: true }>(`/rides/${id}/complete`, { method: 'POST', token });
 
 export const cancelRide = (token: string, id: number) =>
   req<{ ok: true }>(`/rides/${id}/cancel`, { method: 'POST', token });
+
+// --- church home location ---
+export const getChurch = (token: string) => req<{ church: Church | null }>('/church', { token });
+
+export const adminSetChurch = (token: string, body: Church) =>
+  req<{ ok: true }>('/admin/church', { method: 'PUT', body, token });
 
 // --- safety reports ---
 export const fileReport = (token: string, body: { subjectUserId?: number; description: string }) =>

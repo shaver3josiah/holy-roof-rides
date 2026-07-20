@@ -39,6 +39,11 @@ export function openDb(path = DB_PATH) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS safety_reports (
       id              INTEGER PRIMARY KEY AUTOINCREMENT,
       reporter_id     INTEGER NOT NULL REFERENCES users(id),

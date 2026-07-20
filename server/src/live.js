@@ -6,12 +6,13 @@
 //   - addSocket(userId, ws) on open; removeSocket on close.
 //   - On connect, send {type:'hello', userId}.
 //   - Incoming {type:'location', lat, lng}:
-//       * Only meaningful if sender is the DRIVER of an 'accepted' ride in
-//         state.rides — relay to that ride's rider as
+//       * Only meaningful if sender is the DRIVER of an 'accepted' OR
+//         'picked_up' ride in state.rides — relay to that ride's rider as
 //         {type:'driver_location', rideId, lat, lng}.
 //       * NEVER stored, NEVER logged, dropped otherwise.
 //   - Incoming {type:'rider_location', lat, lng}: same but rider -> driver,
-//     relayed as {type:'rider_location', rideId, lat, lng}.
+//     relayed as {type:'rider_location', rideId, lat, lng}. Also for
+//     'accepted' OR 'picked_up' rides.
 //   - Malformed JSON: ignore.
 //
 // Use state.js (rides, addSocket, removeSocket, publish) and util.userForToken.
@@ -42,16 +43,16 @@ export default async function liveRoutes(app) {
       if (!Number.isFinite(msg.lat) || !Number.isFinite(msg.lng)) return;
 
       if (msg.type === 'location') {
-        // sender is a driver on an accepted ride -> relay to that ride's rider
+        // sender is a driver on an accepted/picked_up ride -> relay to that ride's rider
         for (const ride of rides.values()) {
-          if (ride.status === 'accepted' && ride.driverId === userId) {
+          if ((ride.status === 'accepted' || ride.status === 'picked_up') && ride.driverId === userId) {
             publish(ride.riderId, { type: 'driver_location', rideId: ride.id, lat: msg.lat, lng: msg.lng });
           }
         }
       } else if (msg.type === 'rider_location') {
-        // sender is the rider on an accepted ride -> relay to that ride's driver
+        // sender is the rider on an accepted/picked_up ride -> relay to that ride's driver
         for (const ride of rides.values()) {
-          if (ride.status === 'accepted' && ride.riderId === userId) {
+          if ((ride.status === 'accepted' || ride.status === 'picked_up') && ride.riderId === userId) {
             publish(ride.driverId, { type: 'rider_location', rideId: ride.id, lat: msg.lat, lng: msg.lng });
           }
         }

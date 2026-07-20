@@ -1,18 +1,36 @@
 // CONTRACT (implemented by build agent): "Give a Ride" view.
 // Rendered INSIDE HomeScreen (no navigation props; use useSession()).
-// - List open ride requests (api.getRides().open) with distance-from-me if
-//   location is available; refresh on 'rides_changed' via api.openLive.
-// - Accept -> api.acceptRide. While driving: stream own location every ~5s via
-//   the live socket ({type:'location', lat, lng}) using expo-location
-//   watchPositionAsync (foreground only). Show rider pickup pin on OsmMap.
-// - Buttons: complete, cancel (returns ride to open), "Report a concern".
-// - Stop watching + close socket on unmount or ride end.
+// Three states, driven by api.getRides().mine:
+//  1. BROWSE (no active ride) — FlatList of open requests (api.getRides().open),
+//     sorted by distance-from-me when location is available. Each card shows
+//     rider name, "{x.x} mi away", destination label (ride.destination.label ??
+//     geo.reverseGeocode, cached per ride id), and note. Pull-to-refresh +
+//     'rides_changed' WS refresh. Empty state: "No one needs a ride right now 🙌".
+//     Accept -> api.acceptRide; a 409 ("already have an active ride") is shown
+//     kindly and resyncs from the server rather than leaving a stale screen.
+//  2. TO PICKUP (status 'accepted') — map fitTo [me, pickup] with a route
+//     polyline (geo.getRoute, refreshed at most every 30s), pickup marker + my
+//     live position. Card: "Picking up {riderName}" + distance/duration.
+//     Buttons: Navigate (Linking.openURL to the platform maps app, falling
+//     back to an OpenStreetMap link if that rejects), big "{riderName} is in
+//     the car" -> api.pickupRide, Cancel (confirms it reopens the request),
+//     "⚠️ Report a concern".
+//  3. ON TRIP (status 'picked_up') — route polyline me -> destination. Card:
+//     "Driving {riderName} to {destination label}". Navigate now targets the
+//     destination. Big "Complete ride" -> api.completeRide. No cancel (the
+//     server blocks it once picked up). Report stays available.
+// Own location streams to the rider every ~5s over the live socket
+// ({type:'location'}) via expo-location watchPositionAsync (foreground only)
+// for the whole time a ride is accepted OR picked_up. Socket + location
+// watcher are torn down on unmount or when the ride ends.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   Text,
@@ -23,7 +41,9 @@ import * as Location from 'expo-location';
 import { useSession } from '../../App';
 import * as api from '../api';
 import { ApiError } from '../api';
-import OsmMap from '../components/OsmMap';
+import * as geo from '../geo';
+import type { RouteInfo } from '../geo';
+import OsmMap, { type OsmMapProps } from '../components/OsmMap';
 import { colors, spacing, styles } from '../theme';
 import type { LatLng, LiveMessage, Ride } from '../types';
 
@@ -42,8 +62,39 @@ function haversineMiles(a: LatLng, b: LatLng): number {
   return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-function destinationLabel(ride: Ride): string {
-  return ride.destination.label ?? `${ride.destination.lat.toFixed(3)}, ${ride.destination.lng.toFixed(3)}`;
+function coordFallbackLabel(coord: LatLng): string {
+  return `${coord.lat.toFixed(3)}, ${coord.lng.toFixed(3)}`;
+}
+
+/** Destination label, cached per ride id so we only reverse-geocode once per ride. */
+function useDestinationLabel(ride: Ride, cache: React.MutableRefObject<Map<number, string>>): string {
+  const known = ride.destination.label ?? cache.current.get(ride.id) ?? null;
+  const [label, setLabel] = useState<string | null>(known);
+
+  useEffect(() => {
+    if (ride.destination.label) {
+      setLabel(ride.destination.label);
+      return;
+    }
+    const cached = cache.current.get(ride.id);
+    if (cached) {
+      setLabel(cached);
+      return;
+    }
+    let cancelled = false;
+    geo.reverseGeocode(ride.destination).then((resolved) => {
+      if (cancelled) return;
+      const text = resolved ?? coordFallbackLabel(ride.destination);
+      cache.current.set(ride.id, text);
+      setLabel(text);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ride.id, ride.destination.label]);
+
+  return label ?? 'Looking up destination…';
 }
 
 function ErrorBanner({ message }: { message: string }) {
@@ -62,10 +113,13 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-function EmptyState({ text }: { text: string }) {
+function EmptyState() {
   return (
     <View style={{ padding: spacing.l, alignItems: 'center' }}>
-      <Text style={[styles.mutedText, { textAlign: 'center' }]}>{text}</Text>
+      <Text style={[styles.h2, { textAlign: 'center' }]}>No one needs a ride right now 🙌</Text>
+      <Text style={[styles.mutedText, { textAlign: 'center', marginTop: spacing.xs }]}>
+        Pull down to check again.
+      </Text>
     </View>
   );
 }
@@ -73,19 +127,22 @@ function EmptyState({ text }: { text: string }) {
 function RideCard({
   ride,
   distance,
+  cache,
   busy,
   onAccept,
 }: {
   ride: Ride;
   distance: number | null;
+  cache: React.MutableRefObject<Map<number, string>>;
   busy: boolean;
   onAccept: () => void;
 }) {
+  const destLabel = useDestinationLabel(ride, cache);
   return (
     <View style={[styles.card, { marginHorizontal: spacing.m, marginBottom: spacing.s }]}>
       <Text style={styles.h2}>{ride.riderName}</Text>
       {distance != null && <Text style={[styles.mutedText, { marginTop: 2 }]}>{distance.toFixed(1)} mi away</Text>}
-      <Text style={[styles.body, { marginTop: spacing.s }]}>To {destinationLabel(ride)}</Text>
+      <Text style={[styles.body, { marginTop: spacing.s }]}>To {destLabel}</Text>
       {ride.note ? <Text style={[styles.mutedText, { marginTop: spacing.xs }]}>“{ride.note}”</Text> : null}
       <Pressable
         style={[styles.button, { marginTop: spacing.m, opacity: busy ? 0.6 : 1 }]}
@@ -101,47 +158,79 @@ function RideCard({
 function ActiveRide({
   ride,
   location,
+  route,
+  cache,
   busy,
-  onComplete,
+  onNavigate,
+  onPrimary,
   onCancel,
   onReport,
 }: {
   ride: Ride;
   location: LatLng | null;
+  route: RouteInfo | null;
+  cache: React.MutableRefObject<Map<number, string>>;
   busy: boolean;
-  onComplete: () => void;
+  onNavigate: () => void;
+  onPrimary: () => void;
   onCancel: () => void;
   onReport: () => void;
 }) {
+  const destLabel = useDestinationLabel(ride, cache);
+  const toPickup = ride.status === 'accepted';
+
+  const markers = useMemo<NonNullable<OsmMapProps['markers']>>(() => {
+    const list: NonNullable<OsmMapProps['markers']> = [];
+    list.push(
+      toPickup
+        ? { id: 'pickup', coord: ride.pickup, label: `${ride.riderName}'s pickup`, color: colors.accent, kind: 'pin' }
+        : { id: 'dest', coord: ride.destination, label: destLabel, color: colors.primary, kind: 'pin' }
+    );
+    if (location) list.push({ id: 'me', coord: location, label: 'You', color: colors.primary, kind: 'car' });
+    return list;
+  }, [toPickup, ride.pickup, ride.destination, ride.riderName, destLabel, location]);
+
+  const fitTo = useMemo<LatLng[]>(() => {
+    const target = toPickup ? ride.pickup : ride.destination;
+    return location ? [location, target] : [target];
+  }, [toPickup, ride.pickup, ride.destination, location]);
+
   return (
     <View style={{ flex: 1 }}>
-      <OsmMap
-        style={{ flex: 1 }}
-        center={location ?? ride.pickup}
-        followsUser
-        markers={[{ id: 'pickup', coord: ride.pickup, label: `${ride.riderName}'s pickup`, color: colors.accent }]}
-      />
+      <OsmMap style={{ flex: 1 }} fitTo={fitTo} polyline={route?.coords} markers={markers} />
       <View style={[styles.card, { margin: spacing.m }]}>
-        <Text style={styles.h2}>Driving {ride.riderName}</Text>
-        <Text style={[styles.mutedText, { marginTop: 2 }]}>To {destinationLabel(ride)}</Text>
-        {ride.note ? <Text style={[styles.body, { marginTop: spacing.s }]}>“{ride.note}”</Text> : null}
-        <View style={{ flexDirection: 'row', gap: spacing.s, marginTop: spacing.m }}>
+        <Text style={styles.h2}>{toPickup ? `Picking up ${ride.riderName}` : `Driving ${ride.riderName} to ${destLabel}`}</Text>
+        {route ? (
+          <Text style={[styles.mutedText, { marginTop: 2 }]}>
+            {geo.formatDistance(route.distanceMeters)} · {geo.formatDuration(route.durationSec)}
+          </Text>
+        ) : location ? (
+          <Text style={[styles.mutedText, { marginTop: 2 }]}>Finding the route…</Text>
+        ) : null}
+        {toPickup && ride.note ? <Text style={[styles.body, { marginTop: spacing.s }]}>“{ride.note}”</Text> : null}
+
+        <Pressable style={[styles.buttonSecondary, { marginTop: spacing.m }]} onPress={onNavigate}>
+          <Text style={styles.buttonSecondaryText}>🧭 Navigate</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.button, { marginTop: spacing.s, opacity: busy ? 0.6 : 1 }]}
+          onPress={onPrimary}
+          disabled={busy}
+        >
+          <Text style={styles.buttonText}>
+            {busy ? 'Please wait…' : toPickup ? `${ride.riderName} is in the car` : 'Complete ride'}
+          </Text>
+        </Pressable>
+        {toPickup && (
           <Pressable
-            style={[styles.button, { flex: 1, opacity: busy ? 0.6 : 1 }]}
-            onPress={onComplete}
-            disabled={busy}
-          >
-            <Text style={styles.buttonText}>Complete</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.buttonSecondary, { flex: 1, opacity: busy ? 0.6 : 1 }]}
+            style={{ marginTop: spacing.m, alignItems: 'center' }}
             onPress={onCancel}
             disabled={busy}
           >
-            <Text style={styles.buttonSecondaryText}>Cancel</Text>
+            <Text style={{ color: colors.muted, fontWeight: '600' }}>Cancel</Text>
           </Pressable>
-        </View>
-        <Pressable style={{ marginTop: spacing.m, alignItems: 'center' }} onPress={onReport}>
+        )}
+        <Pressable style={{ marginTop: spacing.s, alignItems: 'center' }} onPress={onReport}>
           <Text style={{ color: colors.danger, fontWeight: '600' }}>⚠️ Report a concern</Text>
         </Pressable>
       </View>
@@ -209,6 +298,7 @@ export default function DriverScreen() {
   const [openRides, setOpenRides] = useState<Ride[]>([]);
   const [myRide, setMyRide] = useState<Ride | null>(null);
   const [location, setLocation] = useState<LatLng | null>(null);
+  const [route, setRoute] = useState<RouteInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -223,6 +313,9 @@ export default function DriverScreen() {
   const socketRef = useRef<WebSocket | null>(null);
   const watchRef = useRef<{ remove: () => void } | null>(null);
   const lastSentRef = useRef(0);
+  const destCacheRef = useRef<Map<number, string>>(new Map());
+  const routeTargetRef = useRef<'pickup' | 'destination' | null>(null);
+  const lastRouteAtRef = useRef(0);
 
   // One-shot location fix, just for sorting/showing distance in the list.
   useEffect(() => {
@@ -270,6 +363,10 @@ export default function DriverScreen() {
       }
       if (msg.type === 'rides_changed') {
         refreshRides();
+      } else if (msg.type === 'ride_picked_up') {
+        // Recovery path: if our pickup POST response was lost mid-drive, the
+        // server's WS echo still moves the UI forward.
+        setMyRide((cur) => (cur && cur.id === msg.ride.id ? msg.ride : cur));
       } else if (msg.type === 'ride_ended') {
         setMyRide((cur) => {
           if (!cur || cur.id !== msg.rideId) return cur;
@@ -287,7 +384,8 @@ export default function DriverScreen() {
     };
   }, [token, refreshRides]);
 
-  // Stream location to the rider only while an accepted ride is active.
+  // Stream location to the rider (and keep our own map fresh) while a ride is
+  // accepted OR picked up.
   useEffect(() => {
     if (!myRide) {
       watchRef.current?.remove();
@@ -306,14 +404,16 @@ export default function DriverScreen() {
       const sub = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
         (pos) => {
+          const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setLocation(next);
           // ponytail: timeInterval is Android-only in expo-location; this gate
-          // keeps the ~5s cadence on iOS too, where updates are distance-driven.
+          // keeps the ~5s send cadence on iOS too, where updates are distance-driven.
           const now = Date.now();
           if (now - lastSentRef.current < 4500) return;
           lastSentRef.current = now;
           const ws = socketRef.current;
           if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'location', lat: pos.coords.latitude, lng: pos.coords.longitude }));
+            ws.send(JSON.stringify({ type: 'location', lat: next.lat, lng: next.lng }));
           }
         }
       );
@@ -329,6 +429,30 @@ export default function DriverScreen() {
       watchRef.current = null;
     };
   }, [myRide?.id]);
+
+  // Route to whichever point matters right now (pickup, then destination once
+  // picked up), refreshed at most every 30s — or immediately when the target
+  // switches from pickup to destination.
+  useEffect(() => {
+    if (!myRide || !location) {
+      setRoute(null);
+      routeTargetRef.current = null;
+      return;
+    }
+    const targetKey = myRide.status === 'picked_up' ? 'destination' : 'pickup';
+    const target = targetKey === 'destination' ? myRide.destination : myRide.pickup;
+    const targetChanged = routeTargetRef.current !== targetKey;
+    if (!targetChanged && Date.now() - lastRouteAtRef.current < 30000) return;
+    routeTargetRef.current = targetKey;
+    lastRouteAtRef.current = Date.now();
+    let cancelled = false;
+    geo.getRoute(location, target).then((r) => {
+      if (!cancelled) setRoute(r);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [myRide?.id, myRide?.status, myRide?.pickup, myRide?.destination, location]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -346,12 +470,30 @@ export default function DriverScreen() {
         setMyRide(accepted);
       } catch (err) {
         setError(friendlyError(err));
+        if (err instanceof ApiError && err.status === 409) {
+          // Our list was stale (already have a ride, or someone beat us to it) — resync.
+          refreshRides();
+        }
       } finally {
         setBusyRideId(null);
       }
     },
-    [token]
+    [token, refreshRides]
   );
+
+  const pickup = useCallback(async () => {
+    if (!myRide) return;
+    setActionBusy(true);
+    setError(null);
+    try {
+      const { ride: updated } = await api.pickupRide(token, myRide.id);
+      setMyRide(updated);
+    } catch (err) {
+      setError(friendlyError(err));
+    } finally {
+      setActionBusy(false);
+    }
+  }, [token, myRide]);
 
   const complete = useCallback(async () => {
     if (!myRide) return;
@@ -389,6 +531,25 @@ export default function DriverScreen() {
       },
     ]);
   }, [token, myRide]);
+
+  const navigate = useCallback(async () => {
+    if (!myRide) return;
+    const target = myRide.status === 'picked_up' ? myRide.destination : myRide.pickup;
+    const url = Platform.select({
+      ios: `http://maps.apple.com/?daddr=${target.lat},${target.lng}`,
+      android: `google.navigation:q=${target.lat},${target.lng}`,
+      default: `geo:${target.lat},${target.lng}`,
+    });
+    try {
+      await Linking.openURL(url);
+    } catch {
+      try {
+        await Linking.openURL(`https://www.openstreetmap.org/?mlat=${target.lat}&mlon=${target.lng}`);
+      } catch {
+        Alert.alert('Could not open maps', "We couldn't find a maps app to open directions.");
+      }
+    }
+  }, [myRide]);
 
   const submitReport = useCallback(async () => {
     if (!reportText.trim()) {
@@ -432,8 +593,11 @@ export default function DriverScreen() {
         <ActiveRide
           ride={myRide}
           location={location}
+          route={route}
+          cache={destCacheRef}
           busy={actionBusy}
-          onComplete={complete}
+          onNavigate={navigate}
+          onPrimary={myRide.status === 'accepted' ? pickup : complete}
           onCancel={cancel}
           onReport={() => setReportOpen(true)}
         />
@@ -445,11 +609,12 @@ export default function DriverScreen() {
           keyExtractor={(r) => String(r.id)}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           contentContainerStyle={{ paddingVertical: spacing.m, flexGrow: 1 }}
-          ListEmptyComponent={<EmptyState text="No ride requests right now. Pull down to check again." />}
+          ListEmptyComponent={<EmptyState />}
           renderItem={({ item }) => (
             <RideCard
               ride={item}
               distance={location ? haversineMiles(location, item.pickup) : null}
+              cache={destCacheRef}
               busy={busyRideId === item.id}
               onAccept={() => accept(item)}
             />

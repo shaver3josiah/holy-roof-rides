@@ -138,7 +138,12 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
             <Text style={{ color: colors.primary, fontWeight: '600' }}>Admin</Text>
           </Pressable>
         )}
-        <Pressable onPress={() => navigation.navigate('Settings')} style={{ padding: spacing.s }}>
+        <Pressable
+          onPress={() => navigation.navigate('Settings')}
+          style={{ padding: spacing.s }}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
           <Text style={{ fontSize: 20 }}>⚙️</Text>
         </Pressable>
       </View>

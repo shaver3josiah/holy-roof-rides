@@ -135,6 +135,58 @@ test('POST /rides/:id/accept sets driver fields and status', async () => {
   assert.equal(ride.driverName, 'Driver');
 });
 
+test('POST /rides/:id/accept 409s if the driver already has an active ride', async () => {
+  const first = await createRide(rider.token);
+  await app.inject({ method: 'POST', url: `/rides/${first.json().ride.id}/accept`, headers: authHeaders(driver.token) });
+
+  const second = await createRide(otherDriver.token);
+  const res = await app.inject({
+    method: 'POST',
+    url: `/rides/${second.json().ride.id}/accept`,
+    headers: authHeaders(driver.token),
+  });
+  assert.equal(res.statusCode, 409);
+});
+
+// --- pickup ---------------------------------------------------------------
+
+test('full lifecycle: accept -> pickup -> complete', async () => {
+  const created = await createRide(rider.token);
+  const id = created.json().ride.id;
+  await app.inject({ method: 'POST', url: `/rides/${id}/accept`, headers: authHeaders(driver.token) });
+
+  const pickup = await app.inject({ method: 'POST', url: `/rides/${id}/pickup`, headers: authHeaders(driver.token) });
+  assert.equal(pickup.statusCode, 200);
+  assert.equal(pickup.json().ride.status, 'picked_up');
+  assert.equal(rides.get(id).status, 'picked_up');
+
+  const complete = await app.inject({ method: 'POST', url: `/rides/${id}/complete`, headers: authHeaders(driver.token) });
+  assert.equal(complete.statusCode, 200);
+  assert.equal(rides.has(id), false);
+});
+
+test('POST /rides/:id/pickup 404s for an unknown ride', async () => {
+  const res = await app.inject({ method: 'POST', url: '/rides/999/pickup', headers: authHeaders(driver.token) });
+  assert.equal(res.statusCode, 404);
+});
+
+test('POST /rides/:id/pickup 409s when the ride is still open', async () => {
+  const created = await createRide(rider.token);
+  const id = created.json().ride.id;
+
+  const res = await app.inject({ method: 'POST', url: `/rides/${id}/pickup`, headers: authHeaders(rider.token) });
+  assert.equal(res.statusCode, 409);
+});
+
+test('POST /rides/:id/pickup 403s for a stranger', async () => {
+  const created = await createRide(rider.token);
+  const id = created.json().ride.id;
+  await app.inject({ method: 'POST', url: `/rides/${id}/accept`, headers: authHeaders(driver.token) });
+
+  const res = await app.inject({ method: 'POST', url: `/rides/${id}/pickup`, headers: authHeaders(otherDriver.token) });
+  assert.equal(res.statusCode, 403);
+});
+
 // --- complete -------------------------------------------------------------
 
 test('POST /rides/:id/complete deletes the ride from state', async () => {
@@ -186,6 +238,21 @@ test('driver cancel reopens the ride with driver fields cleared', async () => {
   assert.equal(ride.status, 'open');
   assert.equal(ride.driverId, null);
   assert.equal(ride.driverName, null);
+});
+
+test('driver cancel 409s after pickup, but rider cancel still works', async () => {
+  const created = await createRide(rider.token);
+  const id = created.json().ride.id;
+  await app.inject({ method: 'POST', url: `/rides/${id}/accept`, headers: authHeaders(driver.token) });
+  await app.inject({ method: 'POST', url: `/rides/${id}/pickup`, headers: authHeaders(driver.token) });
+
+  const driverCancel = await app.inject({ method: 'POST', url: `/rides/${id}/cancel`, headers: authHeaders(driver.token) });
+  assert.equal(driverCancel.statusCode, 409);
+  assert.equal(rides.get(id).status, 'picked_up');
+
+  const riderCancel = await app.inject({ method: 'POST', url: `/rides/${id}/cancel`, headers: authHeaders(rider.token) });
+  assert.equal(riderCancel.statusCode, 200);
+  assert.equal(rides.has(id), false);
 });
 
 test('POST /rides/:id/cancel 404s for an unknown ride', async () => {

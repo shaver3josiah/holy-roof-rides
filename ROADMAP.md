@@ -55,11 +55,18 @@ rides exist only in server memory and are gone when the ride ends.
 
 ## Phase 2 — Beta (v0.2)
 
+- [x] Ride stage progression (open → accepted → picked up)
+- [x] Destination search + route preview with ETA
+- [x] Church home location (Admin > Church)
+- [x] Navigation handoff (driver's map app)
+- [x] Recent destinations (device-local)
 - [ ] Push notifications (ride requested / accepted / arriving) via Expo Push
 - [ ] Scheduled rides ("I need a ride to Sunday 10am service")
 - [ ] Ride notes & seat count (family of 4, wheelchair space)
 - [ ] Vector tiles via MapLibre (replaces raster OSM tiles; self-hostable styles)
 - [ ] Multi-congregation support (one server, several churches)
+- [ ] Share my ride status via SMS
+- [ ] Deacon force sign-out
 
 ## Phase 3 — v1.0
 

@@ -7,7 +7,7 @@
 //   both consume it.
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import type { LatLng } from '../types';
 import { colors } from '../theme';
 
@@ -23,7 +23,18 @@ const DEFAULT_DELTA = 0.02;
 export interface OsmMapProps {
   /** Recenter the map when this changes. */
   center?: LatLng;
-  markers?: Array<{ id: string; coord: LatLng; label?: string; color?: string }>;
+  markers?: Array<{
+    id: string;
+    coord: LatLng;
+    label?: string;
+    color?: string;
+    /** Marker rendering: default pin, a car (driver), or the church. */
+    kind?: 'pin' | 'car' | 'church';
+  }>;
+  /** Route line to draw on the map (e.g. from geo.getRoute). */
+  polyline?: LatLng[];
+  /** When set, fit the camera to contain all these points (overrides center). */
+  fitTo?: LatLng[];
   /** Long-press to drop a pin (used for choosing a destination). */
   onLongPress?: (coord: LatLng) => void;
   /** Show the user's own location dot. */
@@ -31,13 +42,24 @@ export interface OsmMapProps {
   style?: ViewStyle;
 }
 
-export default function OsmMap({ center, markers, onLongPress, followsUser, style }: OsmMapProps) {
+export default function OsmMap({
+  center,
+  markers,
+  polyline,
+  fitTo,
+  onLongPress,
+  followsUser,
+  style,
+}: OsmMapProps) {
   const mapRef = useRef<MapView>(null);
+  const hasFitTo = !!fitTo && fitTo.length > 0;
 
   // Recenter on an already-mounted map when the caller hands us a new center
   // (e.g. a fresh location fix), rather than only honoring it on first mount.
+  // fitTo takes priority — while it's set, camera framing is driven by the
+  // effect below instead.
   useEffect(() => {
-    if (!center) return;
+    if (!center || hasFitTo) return;
     mapRef.current?.animateToRegion(
       {
         latitude: center.lat,
@@ -47,7 +69,18 @@ export default function OsmMap({ center, markers, onLongPress, followsUser, styl
       },
       300
     );
-  }, [center?.lat, center?.lng]);
+  }, [center?.lat, center?.lng, hasFitTo]);
+
+  // Fit the camera to contain every point in `fitTo` (e.g. pickup + drop-off)
+  // whenever the set changes.
+  useEffect(() => {
+    if (!fitTo || fitTo.length === 0) return;
+    mapRef.current?.fitToCoordinates(
+      fitTo.map((c) => ({ latitude: c.lat, longitude: c.lng })),
+      { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(fitTo)]);
 
   const initialRegion = center
     ? {
@@ -73,14 +106,34 @@ export default function OsmMap({ center, markers, onLongPress, followsUser, styl
         }}
       >
         <UrlTile urlTemplate={OSM_TILE_URL_TEMPLATE} maximumZ={19} />
-        {markers?.map((m) => (
-          <Marker
-            key={m.id}
-            coordinate={{ latitude: m.coord.lat, longitude: m.coord.lng }}
-            title={m.label}
-            pinColor={m.color}
+        {polyline && polyline.length > 1 && (
+          <Polyline
+            coordinates={polyline.map((c) => ({ latitude: c.lat, longitude: c.lng }))}
+            strokeColor={colors.primary}
+            strokeWidth={4}
           />
-        ))}
+        )}
+        {markers?.map((m) =>
+          m.kind === 'car' || m.kind === 'church' ? (
+            <Marker
+              key={m.id}
+              coordinate={{ latitude: m.coord.lat, longitude: m.coord.lng }}
+              title={m.label}
+              anchor={{ x: 0.5, y: 0.5 }}
+            >
+              <View style={chipStyles.chip}>
+                <Text style={chipStyles.emoji}>{m.kind === 'car' ? '🚗' : '⛪'}</Text>
+              </View>
+            </Marker>
+          ) : (
+            <Marker
+              key={m.id}
+              coordinate={{ latitude: m.coord.lat, longitude: m.coord.lng }}
+              title={m.label}
+              pinColor={m.color}
+            />
+          )
+        )}
       </MapView>
       <View style={attributionStyles.box} pointerEvents="none">
         <Text style={attributionStyles.text}>© OpenStreetMap contributors</Text>
@@ -88,6 +141,22 @@ export default function OsmMap({ center, markers, onLongPress, followsUser, styl
     </View>
   );
 }
+
+const chipStyles = StyleSheet.create({
+  chip: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emoji: {
+    fontSize: 18,
+  },
+});
 
 const attributionStyles = StyleSheet.create({
   box: {

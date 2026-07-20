@@ -19,7 +19,7 @@ import { useSession } from '../../App';
 import * as api from '../api';
 import { ApiError } from '../api';
 import { saveAuth } from '../store';
-import { colors, spacing, styles } from '../theme';
+import { colors, radius, spacing, styles } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PinLogin'>;
 
@@ -32,7 +32,7 @@ export default function PinLoginScreen({ navigation, route }: Props) {
 
   const submit = async () => {
     if (!phone.trim() || !pin) {
-      setError('Enter your phone number and PIN.');
+      setError('Enter your phone number and PIN to continue.');
       return;
     }
     setError(null);
@@ -43,7 +43,7 @@ export default function PinLoginScreen({ navigation, route }: Props) {
       setSession({ token, user });
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
-        setError('Too many tries, wait a bit.');
+        setError("You've tried a few too many times. Please wait a few minutes and try again.");
       } else {
         setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
       }
@@ -61,40 +61,62 @@ export default function PinLoginScreen({ navigation, route }: Props) {
         contentContainerStyle={{ padding: spacing.l, flexGrow: 1, justifyContent: 'center' }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={[styles.h1, { marginBottom: spacing.xs }]}>Welcome back</Text>
-        <Text style={[styles.body, { marginBottom: spacing.l, color: colors.muted }]}>
+        <Text style={{ fontSize: 44, textAlign: 'center' }}>👋</Text>
+        <Text style={[styles.h1, { marginTop: spacing.xs, marginBottom: spacing.xs, textAlign: 'center' }]}>
+          Welcome back
+        </Text>
+        <Text style={[styles.body, { marginBottom: spacing.l, color: colors.muted, textAlign: 'center' }]}>
           Log in with your phone number and PIN.
         </Text>
 
-        <View style={{ marginBottom: spacing.m }}>
-          <Text style={[styles.mutedText, { marginBottom: spacing.xs }]}>Phone number</Text>
-          <TextInput
-            style={styles.input}
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            autoCapitalize="none"
-            placeholder="(555) 555-0100"
-            placeholderTextColor={colors.muted}
-          />
-        </View>
+        <View style={[styles.card, { marginBottom: spacing.l }]}>
+          <View style={{ marginBottom: spacing.m }}>
+            <Text style={[styles.mutedText, { marginBottom: spacing.xs, fontWeight: '600' }]}>Phone number</Text>
+            <TextInput
+              style={styles.input}
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+              placeholder="(555) 555-0100"
+              placeholderTextColor={colors.muted}
+            />
+          </View>
 
-        <View style={{ marginBottom: spacing.m }}>
-          <Text style={[styles.mutedText, { marginBottom: spacing.xs }]}>PIN</Text>
-          <TextInput
-            style={styles.input}
-            value={pin}
-            onChangeText={(t) => setPin(t.replace(/\D/g, ''))}
-            keyboardType="numeric"
-            secureTextEntry
-            maxLength={8}
-            placeholder="••••"
-            placeholderTextColor={colors.muted}
-          />
+          <View>
+            <Text style={[styles.mutedText, { marginBottom: spacing.xs, fontWeight: '600' }]}>PIN</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  fontSize: 28,
+                  letterSpacing: 10,
+                  textAlign: 'center',
+                  paddingVertical: 18,
+                },
+              ]}
+              value={pin}
+              onChangeText={(t) => setPin(t.replace(/\D/g, ''))}
+              keyboardType="numeric"
+              secureTextEntry
+              maxLength={8}
+              placeholder="••••"
+              placeholderTextColor={colors.muted}
+            />
+          </View>
         </View>
 
         {error && (
-          <Text style={[styles.body, { color: colors.danger, marginBottom: spacing.m }]}>{error}</Text>
+          <View
+            style={{
+              backgroundColor: 'rgba(179,70,46,0.08)',
+              borderRadius: radius.s,
+              padding: spacing.m,
+              marginBottom: spacing.m,
+            }}
+          >
+            <Text style={[styles.body, { color: colors.danger }]}>{error}</Text>
+          </View>
         )}
 
         <Pressable style={styles.button} onPress={submit} disabled={loading}>
@@ -102,7 +124,7 @@ export default function PinLoginScreen({ navigation, route }: Props) {
         </Pressable>
 
         <Pressable
-          style={{ marginTop: spacing.l, alignItems: 'center' }}
+          style={{ marginTop: spacing.l, alignItems: 'center', paddingVertical: spacing.s }}
           onPress={() => navigation.navigate('Join')}
         >
           <Text style={{ color: colors.primary, fontWeight: '600' }}>Have an invite code? Join</Text>

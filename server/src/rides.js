@@ -19,18 +19,29 @@
 //   - publish to rider {type:'ride_accepted', ride}; broadcast rides_changed.
 //   -> {ride}
 //
+// POST /rides/:id/pickup
+//   - 404 unknown ride; 403 if caller is neither rider nor driver;
+//     409 if status !== 'accepted'.
+//   - Sets status 'picked_up'.
+//   - publish {type:'ride_picked_up', ride} to BOTH rider and driver.
+//   -> {ride}
+//
 // POST /rides/:id/complete
-//   - Only the ride's rider or driver. Deletes the ride from memory entirely.
+//   - Only the ride's rider or driver. Works from 'accepted' or 'picked_up'.
+//     Deletes the ride from memory entirely.
 //   - publish {type:'ride_ended', rideId, reason:'completed'} to both parties;
 //     broadcast rides_changed.
 //   -> {ok:true}
 //
 // POST /rides/:id/cancel
-//   - Rider cancels: delete ride (notify driver if any).
-//   - Driver cancels: ride returns to 'open' (driver fields cleared), notify rider.
+//   - Rider cancels: delete ride (notify driver if any), any status.
+//   - Driver cancels: only when status === 'accepted' — ride returns to 'open'
+//     (driver fields cleared), notify rider. If status === 'picked_up', 409
+//     {error:'Ride is in progress — complete it instead'} (ride is untouched).
 //   - publish {type:'ride_ended'|'ride_reopened', ...}; broadcast rides_changed.
 //   -> {ok:true}
 //
+// Ride lifecycle: open -> accepted -> picked_up -> gone (completed/cancelled).
 // Use rides, newRideId, publish, broadcast from state.js; requireUser from util.js.
 
 import { rides, newRideId, publish, broadcast } from './state.js';
@@ -106,6 +117,20 @@ export default async function rideRoutes(app) {
     return { ride };
   });
 
+  app.post('/rides/:id/pickup', async (req, reply) => {
+    const ride = rides.get(Number(req.params.id));
+    if (!ride) return reply.code(404).send({ error: 'Ride not found' });
+    if (ride.riderId !== req.user.id && ride.driverId !== req.user.id) {
+      return reply.code(403).send({ error: 'Not your ride' });
+    }
+    if (ride.status !== 'accepted') return reply.code(409).send({ error: 'Ride is not ready for pickup' });
+
+    ride.status = 'picked_up';
+    publish(ride.riderId, { type: 'ride_picked_up', ride });
+    publish(ride.driverId, { type: 'ride_picked_up', ride });
+    return { ride };
+  });
+
   app.post('/rides/:id/complete', async (req, reply) => {
     const id = Number(req.params.id);
     const ride = rides.get(id);
@@ -136,7 +161,13 @@ export default async function rideRoutes(app) {
       return { ok: true };
     }
 
-    // Driver cancels: reopen the ride for another driver instead of losing it.
+    // Driver cancels: only while still 'accepted' — once picked up, the rider
+    // is in the vehicle and reopening/dropping the ride isn't safe.
+    if (ride.status === 'picked_up') {
+      return reply.code(409).send({ error: 'Ride is in progress — complete it instead' });
+    }
+
+    // Reopen the ride for another driver instead of losing it.
     ride.status = 'open';
     ride.driverId = null;
     ride.driverName = null;

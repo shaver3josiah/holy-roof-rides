@@ -10,9 +10,14 @@ No fares, no tips, no ratings. This is ministry, not a taxi business.
 ## What it does
 
 - **Ask for a ride.** Drop a pin for where you're going, and see it on an
-  open map (no Google account needed — it uses OpenStreetMap).
-- **Give a ride.** Flip into "Give a Ride" mode to see open requests nearby
-  and accept one.
+  open map (no Google account needed — it uses OpenStreetMap). Search for a
+  destination by name or address and preview the route and ETA before you
+  request — or tap **Take me to Church** for one-tap directions to your
+  congregation's home address.
+- **Give a ride.** Flip into "Give a Ride" mode to see open requests nearby,
+  accept one, and hand off to your phone's map app with **Navigate**.
+- **Ride stages.** Once a driver accepts, the rider watches the ride move
+  from *on the way* to *picked up* — always clear where things stand.
 - **Live location, only during the ride.** While a ride is active, rider and
   driver can see each other's location on the map. The moment the ride ends,
   that location data is gone — it was never written to disk.
@@ -77,6 +82,9 @@ From the Admin screen in the app, generate invite codes and hand them out
 (print them, text them, whatever works for your church). When someone joins
 with a code, they show up in your pending-approval list — tap approve and
 they're in.
+
+While you're there, set your church's home location in **Admin > Church** —
+that's what powers the rider's one-tap "Take me to Church" button.
 
 ### 4. Install the app
 

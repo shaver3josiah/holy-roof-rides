@@ -21,11 +21,17 @@ import { useSession } from '../../App';
 import * as api from '../api';
 import { ApiError } from '../api';
 import { saveAuth } from '../store';
-import { colors, spacing, styles } from '../theme';
+import { colors, radius, spacing, styles } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Join'>;
 
 const PIN_RE = /^\d{4,8}$/;
+
+const BENEFITS: Array<{ emoji: string; text: string }> = [
+  { emoji: '🙋', text: 'Ask for a ride' },
+  { emoji: '🚗', text: 'Give a ride' },
+  { emoji: '✅', text: 'Approved by your deacons' },
+];
 
 function Field(props: {
   label: string;
@@ -36,10 +42,12 @@ function Field(props: {
   maxLength?: number;
   autoCapitalize?: 'none' | 'words';
   placeholder?: string;
+  helper?: string;
+  last?: boolean;
 }) {
   return (
-    <View style={{ marginBottom: spacing.m }}>
-      <Text style={[styles.mutedText, { marginBottom: spacing.xs }]}>{props.label}</Text>
+    <View style={{ marginBottom: props.last ? 0 : spacing.m }}>
+      <Text style={[styles.mutedText, { marginBottom: spacing.xs, fontWeight: '600' }]}>{props.label}</Text>
       <TextInput
         style={styles.input}
         value={props.value}
@@ -51,6 +59,18 @@ function Field(props: {
         placeholder={props.placeholder}
         placeholderTextColor={colors.muted}
       />
+      {props.helper && (
+        <Text style={[styles.mutedText, { marginTop: spacing.xs, fontSize: 13 }]}>{props.helper}</Text>
+      )}
+    </View>
+  );
+}
+
+function SectionCard(props: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={{ marginBottom: spacing.l }}>
+      <Text style={[styles.h2, { marginBottom: spacing.s }]}>{props.title}</Text>
+      <View style={styles.card}>{props.children}</View>
     </View>
   );
 }
@@ -98,44 +118,92 @@ export default function JoinScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={{ padding: spacing.l, flexGrow: 1, justifyContent: 'center' }}
+        contentContainerStyle={{ padding: spacing.l, flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={[styles.h1, { marginBottom: spacing.xs }]}>Welcome!</Text>
-        <Text style={[styles.body, { marginBottom: spacing.l, color: colors.muted }]}>
-          Enter your invite code from a deacon to join Holy Roof Rides.
-        </Text>
+        <View style={{ alignItems: 'center', marginBottom: spacing.l }}>
+          <Text style={{ fontSize: 44 }}>⛪🚗</Text>
+          <Text style={[styles.h1, { marginTop: spacing.xs, textAlign: 'center' }]}>Holy Roof Rides</Text>
+          <Text
+            style={[
+              styles.body,
+              { color: colors.muted, textAlign: 'center', marginTop: spacing.xs },
+            ]}
+          >
+            Rides to church, from people you already trust.
+          </Text>
+        </View>
 
-        <Field label="Invite code" value={inviteCode} onChangeText={setInviteCode} placeholder="ABC123" />
-        <Field label="Full name" value={name} onChangeText={setName} autoCapitalize="words" placeholder="Jane Smith" />
-        <Field
-          label="Phone number"
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          placeholder="(555) 555-0100"
-        />
-        <Field
-          label="Choose a PIN (4-8 digits)"
-          value={pin}
-          onChangeText={(t) => setPin(t.replace(/\D/g, ''))}
-          keyboardType="numeric"
-          secureTextEntry
-          maxLength={8}
-          placeholder="••••"
-        />
-        <Field
-          label="Confirm PIN"
-          value={confirmPin}
-          onChangeText={(t) => setConfirmPin(t.replace(/\D/g, ''))}
-          keyboardType="numeric"
-          secureTextEntry
-          maxLength={8}
-          placeholder="••••"
-        />
+        <View style={[styles.card, { marginBottom: spacing.l }]}>
+          {BENEFITS.map((b, i) => (
+            <View
+              key={b.text}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: i === BENEFITS.length - 1 ? 0 : spacing.s,
+              }}
+            >
+              <Text style={{ fontSize: 20, width: 32 }}>{b.emoji}</Text>
+              <Text style={styles.body}>{b.text}</Text>
+            </View>
+          ))}
+        </View>
+
+        <SectionCard title="Your invite">
+          <Field
+            label="Invite code"
+            value={inviteCode}
+            onChangeText={setInviteCode}
+            placeholder="ABC123"
+            helper="Ask a deacon for this if you don't have one yet."
+            last
+          />
+        </SectionCard>
+
+        <SectionCard title="About you">
+          <Field label="Full name" value={name} onChangeText={setName} autoCapitalize="words" placeholder="Jane Smith" />
+          <Field
+            label="Phone number"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            placeholder="(555) 555-0100"
+            helper="We'll only use this to text you about rides."
+          />
+          <Field
+            label="Choose a PIN (4-8 digits)"
+            value={pin}
+            onChangeText={(t) => setPin(t.replace(/\D/g, ''))}
+            keyboardType="numeric"
+            secureTextEntry
+            maxLength={8}
+            placeholder="••••"
+            helper="You'll use this to sign in — like a debit card PIN."
+          />
+          <Field
+            label="Confirm PIN"
+            value={confirmPin}
+            onChangeText={(t) => setConfirmPin(t.replace(/\D/g, ''))}
+            keyboardType="numeric"
+            secureTextEntry
+            maxLength={8}
+            placeholder="••••"
+            last
+          />
+        </SectionCard>
 
         {error && (
-          <Text style={[styles.body, { color: colors.danger, marginBottom: spacing.m }]}>{error}</Text>
+          <View
+            style={{
+              backgroundColor: 'rgba(179,70,46,0.08)',
+              borderRadius: radius.s,
+              padding: spacing.m,
+              marginBottom: spacing.m,
+            }}
+          >
+            <Text style={[styles.body, { color: colors.danger }]}>{error}</Text>
+          </View>
         )}
 
         <Pressable style={styles.button} onPress={submit} disabled={loading}>
@@ -143,7 +211,7 @@ export default function JoinScreen({ navigation }: Props) {
         </Pressable>
 
         <Pressable
-          style={{ marginTop: spacing.l, alignItems: 'center' }}
+          style={{ marginTop: spacing.l, alignItems: 'center', paddingVertical: spacing.s }}
           onPress={() => navigation.navigate('PinLogin')}
         >
           <Text style={{ color: colors.primary, fontWeight: '600' }}>Already a member? Log in</Text>

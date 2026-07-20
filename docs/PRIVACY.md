@@ -14,6 +14,7 @@ that means for whoever runs it.
 | Invite codes (who made them, how many uses, expiry) | Controls who can join. |
 | Safety reports (description, who filed it, who it's about, resolved or not) | So deacons can look into concerns. |
 | Login sessions (a random token, hashed, with an expiry) | Keeps you logged in without storing your PIN anywhere reusable. |
+| Church name, address & coordinates | The congregation's own public meeting place, set once by a deacon in Admin > Church — powers "Take me to Church." Not personal data about any member. |
 
 That's the whole list. It lives in one file — `holy-roof-rides.db` — on
 your server.
@@ -23,11 +24,40 @@ your server.
 - **Ride requests or ride history.** Once a ride is completed or canceled,
   it's deleted from server memory. There is no `rides` table in the
   database at all — on purpose.
-- **Pickup, dropoff, or destination locations.**
+- **Pickup, dropoff, or destination locations.** (The church's own home
+  address is the one exception — see "Map services" below.)
 - **Live GPS location**, even during an active ride. It's relayed
   rider-to-driver in real time and never written to disk or to a log file.
 - **Who rode with whom, or when.** There is no trip log to look back on.
 - **Analytics, telemetry, or usage tracking** of any kind.
+
+## Map services
+
+Place search and routing don't go through your church's server at all —
+they call two public OpenStreetMap-ecosystem services directly from the
+member's phone (see `app/src/geo.ts`):
+
+- **[Nominatim](https://nominatim.openstreetmap.org)** — place search and
+  reverse geocoding. Receives whatever text you type into the search box,
+  or the coordinates of a pin you drop. See its
+  [usage policy](https://operations.osmfoundation.org/policies/nominatim/)
+  and the [OSM Foundation privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
+- **[OSRM](https://router.project-osrm.org)** — route preview and ETA.
+  Receives the coordinates of your pickup and destination. See its
+  [API usage policy](https://github.com/Project-OSRM/osrm-backend/wiki/Api-usage-policy).
+
+Neither request carries any Holy Roof Rides account, login, or identity —
+just the search text or coordinates, same as typing an address into either
+service's own website. A church that wants this traffic to never leave its
+own infrastructure can self-host both (both projects support it) and point
+the app at the self-hosted URLs.
+
+**Recent destinations** live only on the member's device, never the server,
+and can be cleared from Settings at any time.
+
+**The church's home address**, set once by a deacon in Admin > Church, is
+the single location the server does persist — the congregation's own
+public meeting place, not personal data about any member.
 
 ## The in-memory design
 

@@ -12,6 +12,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # GitHub Actions forbids referencing `secrets` directly inside an `if:`
+    # conditional ("Unrecognized named-value: 'secrets'") — compute it into a
+    # job-level env var here instead, which `if:` steps below CAN read.
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +48,7 @@ jobs:
       # signingConfigs.debug (see android/app/build.gradle), so assembleRelease still
       # produces an installable, if debug-signed, APK — forks/PRs still get a usable build.
       - name: Configure release signing
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         working-directory: app
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

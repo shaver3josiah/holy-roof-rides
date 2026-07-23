@@ -23,6 +23,7 @@ import * as api from '../api';
 import { ApiError } from '../api';
 import { saveAuth } from '../store';
 import { Banner, Button } from '../components/ui';
+import ServerAddressField from '../components/ServerAddressField';
 import LogoCoin from '../components/LogoCoin';
 import { colors, fonts, spacing, styles, type } from '../theme';
 
@@ -225,6 +226,8 @@ export default function JoinScreen({ navigation }: Props) {
             Already a member? Log in
           </Text>
         </Pressable>
+
+        <ServerAddressField />
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -20,6 +20,7 @@ import * as api from '../api';
 import { ApiError } from '../api';
 import { saveAuth } from '../store';
 import { Banner, Button } from '../components/ui';
+import ServerAddressField from '../components/ServerAddressField';
 import { colors, fonts, spacing, styles, type } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PinLogin'>;
@@ -115,6 +116,8 @@ export default function PinLoginScreen({ navigation, route }: Props) {
             Have an invite code? Join
           </Text>
         </Pressable>
+
+        <ServerAddressField />
       </ScrollView>
     </KeyboardAvoidingView>
   );

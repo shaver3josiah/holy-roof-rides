@@ -35,6 +35,14 @@
     },
     "plugins": [
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "Holy Roof Rides shows your position on the map and shares it with your matched ride only while a ride is active. Location is never stored."

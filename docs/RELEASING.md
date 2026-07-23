@@ -134,3 +134,12 @@ for your dev machine's `localhost` — that works out of the box against a
 server started with the command above. For a physical device, an iOS
 simulator, or a server on another machine, open the app's Settings screen
 and change the server URL to `http://<your-machine's-LAN-IP>:8787`.
+
+## HTTP vs HTTPS
+
+The Android app allows plain-HTTP traffic (`usesCleartextTraffic`) because a
+church server on the congregation's LAN (`http://192.168.x.x:8787`) has no
+TLS. Tokens and PINs therefore cross the local network unencrypted — fine for
+a home/church Wi-Fi, not for the open internet. If you expose the server
+publicly, put it behind an HTTPS reverse proxy (Caddy does this in two lines)
+and give members the `https://` address instead.

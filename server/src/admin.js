@@ -12,6 +12,10 @@
 //   GET  /admin/reports             -> {reports: [{id,description,status,createdAt,
 //                                       reporterName, subjectName|null}]}
 //   POST /admin/reports/:id/resolve -> {ok}
+//   GET  /admin/board               -> {rides: [{id,riderName,driverName|null,status,
+//                                       destinationLabel|null,createdAt}]}
+//     Live congregation board (desktop portal). Deliberately excludes
+//     coordinates — deacons see WHO is riding, never precisely where.
 //
 // Any approved member (preHandler requireUser(app.db)):
 //   POST /reports {subjectUserId?, description} -> {ok}
@@ -21,6 +25,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { requireUser, requireDeacon } from './util.js';
+import { rides } from './state.js';
 
 // No 0/O/1/I — avoids characters that are easy to mis-key or mis-read.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // length 32 = 2^5, no mod bias
@@ -174,6 +179,20 @@ export default async function adminRoutes(app) {
     const result = db.prepare(`UPDATE safety_reports SET status = 'resolved' WHERE id = ?`).run(id);
     if (result.changes === 0) return reply.code(404).send({ error: 'Report not found' });
     return { ok: true };
+  });
+
+  app.get('/admin/board', deaconOnly, async () => {
+    // No lat/lng on purpose — the board shows who's riding, never where.
+    return {
+      rides: [...rides.values()].map((r) => ({
+        id: r.id,
+        riderName: r.riderName,
+        driverName: r.driverName ?? null,
+        status: r.status,
+        destinationLabel: r.destination?.label ?? null,
+        createdAt: r.createdAt,
+      })),
+    };
   });
 
   app.post('/reports', memberOnly, async (req, reply) => {

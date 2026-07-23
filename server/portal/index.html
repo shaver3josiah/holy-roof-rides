@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deacon portal · Holey Lift</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  --slate-900:#1F2A44; --slate-800:#263250; --slate-700:#2E3A59; --slate-600:#3C496B; --slate-400:#7F8AA6; --slate-200:#C7CDDB; --slate-100:#E7EAF1;
+  --gold-600:#C08D2E; --gold-500:#D9A441; --gold-400:#E4BA6B; --gold-200:#F1D9A6; --gold-100:#FCEFD8;
+  --white:#FFFFFF; --warm-50:#FAF7F2; --warm-100:#F3EEE5; --warm-200:#E5E0D8; --warm-300:#D3CCC0;
+  --ink-900:#232323; --ink-muted:#5B6472;
+  --danger-600:#B3462E; --danger-100:#FBEAE5;
+  --success-600:#3E7C4F; --success-100:#E7F3EA;
+
+  --color-primary:var(--slate-700); --color-primary-strong:var(--slate-900); --color-primary-hover:var(--slate-800);
+  --color-accent:var(--gold-500); --color-accent-hover:var(--gold-600);
+  --surface-page:var(--warm-50); --surface-card:var(--white); --surface-sunken:var(--warm-50); --surface-sunken-hover:var(--warm-100);
+  --border-hairline:var(--warm-200); --border-strong:var(--warm-300);
+  --text-strong:var(--slate-900); --text-body:var(--ink-900); --text-muted:var(--ink-muted); --text-on-primary:var(--white);
+  --color-danger:var(--danger-600); --surface-danger:var(--danger-100);
+  --color-success:var(--success-600); --surface-success:var(--success-100);
+  --surface-notice:var(--gold-100);
+  --focus-ring:color-mix(in oklab, var(--gold-500) 55%, white);
+
+  --radius-card:12px; --radius-control:8px; --radius-pill:999px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px; --sp-16:64px;
+
+  --font-display:'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:'Space Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* z-scale: 1 = sidebar (fixed), nothing else stacks in this app */
+  --z-sidebar:1;
+}
+
+/* ============================= RESET ============================= */
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font-body); font-size:16px; line-height:1.5; color:var(--text-body);
+  background:var(--surface-page); -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,p,ul,ol,dl,dd,figure{margin:0;}
+ul{list-style:none;padding:0;}
+button,input{font-family:inherit; font-size:inherit; color:inherit;}
+button{cursor:pointer;}
+a{color:var(--slate-700);}
+img,svg{display:block;max-width:100%;}
+/* The hidden attribute must always win — author display rules otherwise
+   override its UA default and "hidden" views stay on screen. */
+[hidden]{display:none !important;}
+
+:focus{outline:none;}
+:focus-visible{outline:3px solid var(--focus-ring); outline-offset:2px; border-radius:4px;}
+
+h1{font-family:var(--font-display); font-weight:700; font-size:26px; color:var(--text-strong);}
+h2{font-family:var(--font-body); font-weight:600; font-size:19px; color:var(--text-strong);}
+.muted{color:var(--text-muted);}
+.helper{font-size:13px; color:var(--text-muted);}
+.mono{font-family:var(--font-mono);}
+.text-danger{color:var(--color-danger);}
+.text-success{color:var(--color-success);}
+
+/* ============================= COMPONENTS ============================= */
+.card{
+  background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:var(--radius-card);
+  padding:var(--sp-6);
+}
+
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border-radius:var(--radius-control); border:1px solid transparent; padding:10px 18px;
+  font-weight:600; font-size:15px; background:none; line-height:1.2;
+  transition:background-color .18s ease-out, border-color .18s ease-out, color .18s ease-out, transform .12s ease-out, opacity .18s ease-out;
+}
+.btn svg{width:16px;height:16px;}
+.btn:disabled{opacity:.55; cursor:not-allowed;}
+.btn-block{width:100%;}
+.btn-sm{padding:7px 12px; font-size:13.5px;}
+
+.btn-primary{background:var(--color-primary); color:var(--text-on-primary);}
+.btn-primary:hover:not(:disabled){background:var(--color-primary-hover);}
+.btn-primary:active:not(:disabled){background:var(--color-primary-hover); transform:translateY(1px);}
+
+.btn-secondary{background:var(--white); color:var(--text-strong); border-color:var(--border-hairline);}
+.btn-secondary:hover:not(:disabled){background:var(--surface-sunken-hover);}
+.btn-secondary:active:not(:disabled){background:var(--warm-200); transform:translateY(1px);}
+
+.btn-outline-danger{background:transparent; color:var(--color-danger); border-color:var(--danger-600);}
+.btn-outline-danger:hover:not(:disabled){background:var(--surface-danger);}
+.btn-outline-danger:active:not(:disabled){background:var(--surface-danger); transform:translateY(1px);}
+
+.field{display:flex; flex-direction:column; gap:6px; margin-bottom:var(--sp-4);}
+.field-label{font-size:13px; font-weight:600; color:var(--text-strong);}
+.field input, input[type="text"], input[type="tel"], input[type="password"], input[type="number"]{
+  border:1px solid var(--border-hairline); border-radius:var(--radius-control);
+  padding:12px 14px; background:var(--white); color:var(--text-body);
+  transition:border-color .18s ease-out, box-shadow .18s ease-out;
+}
+.field input:hover, input:hover{border-color:var(--border-strong);}
+.field input:focus-visible, input:focus-visible{border-color:var(--color-primary); outline:3px solid var(--focus-ring); outline-offset:0;}
+.field input:disabled, input:disabled{opacity:.55; cursor:not-allowed;}
+.field-row{display:flex; align-items:flex-end; gap:var(--sp-3); flex-wrap:wrap;}
+.field-row .field{margin-bottom:0; min-width:140px;}
+
+.banner{border-radius:var(--radius-control); padding:12px 14px; font-size:14px; margin-bottom:var(--sp-4);}
+.banner-danger{background:var(--surface-danger); color:var(--color-danger);}
+.banner-success{background:var(--surface-success); color:var(--color-success);}
+.banner-notice{background:var(--surface-notice); color:var(--slate-900);}
+
+.pill{display:inline-flex; align-items:center; border-radius:var(--radius-pill); padding:3px 11px; font-size:12px; font-weight:700; letter-spacing:.02em;}
+.pill-gold{background:var(--gold-500); color:var(--slate-900);}
+
+.chip{display:inline-flex; align-items:center; border-radius:var(--radius-pill); padding:4px 12px; font-size:13px; font-weight:600;}
+.chip-success{background:var(--surface-success); color:var(--color-success);}
+
+.nav-badge{display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px;
+  border-radius:var(--radius-pill); background:var(--slate-700); color:var(--white); font-size:11px; font-weight:700; margin-left:auto;}
+#badge-reports{background:var(--danger-600);}
+
+.table{width:100%; border-collapse:collapse; font-size:14.5px;}
+.table th{text-align:left; font-size:12.5px; font-weight:600; color:var(--text-muted); padding:10px 12px; border-bottom:1px solid var(--border-hairline);}
+.table td{padding:14px 12px; border-bottom:1px solid var(--border-hairline); vertical-align:middle;}
+.table tr:last-child td{border-bottom:none;}
+.table tr:hover td{background:var(--surface-sunken);}
+
+.empty-state{padding:var(--sp-12) var(--sp-6); text-align:center;}
+.empty-title{font-family:var(--font-display); font-weight:700; font-size:20px; color:var(--text-strong); margin-bottom:var(--sp-2);}
+.empty-col{padding:var(--sp-4) 0;}
+
+/* ============================= LOGIN ============================= */
+.login-view{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:var(--sp-6);}
+.login-card{width:100%; max-width:400px; background:var(--surface-card); border:1px solid var(--border-hairline);
+  border-radius:var(--radius-card); padding:var(--sp-12) var(--sp-8); text-align:center;}
+.login-logo{width:112px; margin:0 auto var(--sp-4); }
+.wordmark{font-size:28px; margin-bottom:2px;}
+.subline{font-size:14px; color:var(--text-muted); margin-bottom:var(--sp-6);}
+.login-card .field{text-align:left;}
+.login-card .banner{text-align:left;}
+#login-pin{letter-spacing:.08em;}
+
+/* ============================= SHELL ============================= */
+.shell{display:flex; min-height:100vh;}
+.sidebar{
+  width:240px; flex:0 0 240px; background:var(--white); border-right:1px solid var(--border-hairline);
+  position:fixed; top:0; left:0; bottom:0; z-index:var(--z-sidebar);
+  display:flex; flex-direction:column; padding:var(--sp-6) var(--sp-4);
+}
+.sidebar-brand{display:flex; align-items:center; gap:10px; padding:0 8px; margin-bottom:var(--sp-8);}
+.sidebar-brand svg,.sidebar-brand img{width:36px; height:36px; flex:none;}
+.sidebar-word{font-family:var(--font-display); font-weight:800; font-size:17px; color:var(--text-strong);}
+.nav{display:flex; flex-direction:column; gap:2px; flex:1;}
+.nav-item{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:none; border:none;
+  border-radius:var(--radius-control); padding:10px 12px; color:var(--text-body); font-weight:500; font-size:14.5px;
+  transition:background-color .15s ease-out, color .15s ease-out;
+}
+.nav-item svg{width:20px; height:20px; flex:none; color:var(--text-muted); transition:color .15s ease-out;}
+.nav-item:hover{background:var(--surface-sunken-hover);}
+.nav-item.active{background:var(--slate-100); color:var(--slate-900); font-weight:700;}
+.nav-item.active svg{color:var(--slate-700);}
+.sidebar-bottom{border-top:1px solid var(--border-hairline); padding-top:var(--sp-4); margin-top:var(--sp-4);}
+.signed-in{font-size:13px; color:var(--text-muted); padding:0 8px 8px;}
+.btn-signout{display:flex; align-items:center; gap:10px; width:100%; background:none; border:none; border-radius:var(--radius-control);
+  padding:10px 8px; color:var(--text-muted); font-weight:500; font-size:14px;}
+.btn-signout svg{width:18px;height:18px;}
+.btn-signout:hover{background:var(--surface-sunken-hover); color:var(--text-strong);}
+
+.content{margin-left:240px; flex:1; padding:var(--sp-12) var(--sp-12); max-width:1120px;}
+.content section{display:flex; flex-direction:column; gap:var(--sp-6);}
+.content section[hidden]{display:none;}
+
+/* ============================= BOARD ============================= */
+.board-head{display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp-4); flex-wrap:wrap;}
+.ws-indicator{display:flex; align-items:center; gap:6px; font-size:13.5px; color:var(--text-muted); font-weight:600;}
+.ws-indicator svg{width:16px; height:16px;}
+.ws-indicator.ws-live{color:var(--color-success);}
+.board-columns{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-8);}
+@media (max-width:900px){.board-columns{grid-template-columns:1fr;}}
+.board-col{display:flex; flex-direction:column; gap:var(--sp-3);}
+.ride-list{display:flex; flex-direction:column; gap:var(--sp-3);}
+.ride-card{background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:var(--radius-card); padding:var(--sp-4) var(--sp-6);}
+.ride-name{font-family:var(--font-body); font-weight:600; font-size:29px; color:var(--text-strong); line-height:1.15;}
+.ride-sub{margin-top:4px; font-size:15px;}
+.ride-status{margin-top:6px; font-size:14px;}
+.ride-time{margin-top:8px;}
+@keyframes breathe{0%,100%{opacity:1;} 50%{opacity:.4;}}
+.breath{animation:breathe 1.8s ease-in-out infinite;}
+@media (prefers-reduced-motion:reduce){.breath{animation:none; opacity:1;}}
+
+/* ============================= APPROVALS ============================= */
+.row-list{display:flex; flex-direction:column; gap:var(--sp-3);}
+.row-item{display:flex; align-items:center; justify-content:space-between; gap:var(--sp-4); flex-wrap:wrap;
+  background:var(--surface-card); border:1px solid var(--border-hairline); border-radius:var(--radius-card); padding:var(--sp-4) var(--sp-6);}
+.row-name{font-weight:600; font-size:16px; color:var(--text-strong);}
+.row-sub{font-size:14px; margin-top:2px;}
+.row-actions{display:flex; gap:var(--sp-2); flex:none;}
+
+/* ============================= REPORTS ============================= */
+.report-card{border-radius:var(--radius-card); padding:var(--sp-4) var(--sp-6); display:flex; flex-direction:column; gap:var(--sp-2);}
+.report-card--open{background:var(--surface-danger); border:1px solid color-mix(in oklab, var(--danger-600) 25%, transparent);}
+.report-meta{font-size:13.5px;}
+.report-desc{font-size:15px; color:var(--text-body);}
+.report-card--open .btn{align-self:flex-start;}
+.resolved-group summary{cursor:pointer; font-weight:600; font-size:14px; color:var(--text-muted); padding:8px 0;}
+.resolved-list{display:flex; flex-direction:column; gap:8px; padding:8px 0 0;}
+.resolved-list li{font-size:14px; color:var(--text-muted);}
+
+/* ============================= MEMBERS ============================= */
+.table a.mono{color:var(--slate-700); text-decoration:none;}
+.table a.mono:hover{text-decoration:underline;}
+
+/* ============================= INVITES ============================= */
+.invite-reveal-box{margin-top:var(--sp-4); background:var(--surface-sunken); border:1px solid var(--border-hairline);
+  border-radius:var(--radius-card); padding:var(--sp-6); text-align:center;}
+.invite-code-huge{font-family:var(--font-mono); font-size:38px; letter-spacing:.12em; color:var(--slate-900); margin-bottom:var(--sp-3);}
+.invite-list-card{margin-top:0;}
+.invite-row{display:flex; align-items:center; gap:var(--sp-4); flex-wrap:wrap; padding:12px 0; border-bottom:1px solid var(--border-hairline); font-size:14px;}
+.invite-row:last-child{border-bottom:none;}
+.invite-code-sm{font-size:15px; letter-spacing:.06em; color:var(--text-strong);}
+.invite-row--revoked .invite-code-sm{text-decoration:line-through; color:var(--text-muted);}
+.invite-row > *:not(.invite-code-sm){margin-right:0;}
+.invite-row form,.invite-row button{margin-left:auto;}
+
+/* ============================= CHURCH ============================= */
+.church-results{display:flex; flex-direction:column; gap:4px; margin-bottom:var(--sp-3);}
+.church-result-btn{display:block; width:100%; text-align:left; background:var(--surface-sunken); border:1px solid var(--border-hairline);
+  border-radius:var(--radius-control); padding:10px 12px; font-size:14px;}
+.church-result-btn:hover{background:var(--surface-sunken-hover);}
+</style>
+</head>
+<body>
+
+<div id="login-view" class="login-view">
+  <form id="login-form" class="login-card" novalidate>
+    <div class="login-logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Holey Lift">
+<defs>
+<radialGradient id="hlFace" cx="50%" cy="42%" r="65%"><stop offset="0%" stop-color="#2E3A59"></stop><stop offset="100%" stop-color="#1F2A44"></stop></radialGradient>
+<linearGradient id="hlRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E4BA6B"></stop><stop offset="50%" stop-color="#D9A441"></stop><stop offset="100%" stop-color="#A97A2E"></stop></linearGradient>
+<radialGradient id="hlInner" cx="50%" cy="44%" r="60%"><stop offset="0%" stop-color="#28324D"></stop><stop offset="100%" stop-color="#1B2439"></stop></radialGradient>
+<path id="hlKey" d="M-9,7 L-9,-5 L7,-5 L7,6 L-1,6 L-1,0 L3,0" fill="none" stroke="#D9A441" stroke-width="2.3" stroke-linecap="square" stroke-linejoin="miter" opacity="0.9"></path>
+<polygon id="hlRay" points="200,200 197,76 203,76" fill="#D9A441" opacity="0.15"></polygon>
+<g id="hlHand"><path d="M-11,26 Q-12,6 -9,-2 L-9,-10 Q-9,-14 -5,-14 Q-1,-14 -1,-10 L-1,-4 L1,-4 L1,-13 Q1,-17 5,-17 Q9,-17 9,-13 L9,-3 L11,-3 L11,-11 Q11,-15 15,-15 Q19,-15 19,-11 L19,-1 L21,-1 L21,-8 Q21,-12 25,-12 Q29,-12 29,-8 L29,6 Q29,20 20,27 L-2,27 Q-11,27 -11,26 Z" transform="translate(-9,0)"></path></g>
+<path id="hlTopArc" d="M33,200 A167,167 0 0 1 367,200" fill="none"></path>
+<path id="hlBotArc" d="M27,200 A173,173 0 0 0 373,200" fill="none"></path>
+</defs>
+<circle cx="200" cy="200" r="196" fill="url(#hlRim)"></circle>
+<circle cx="200" cy="200" r="186" fill="url(#hlFace)"></circle>
+<circle cx="200" cy="200" r="186" fill="none" stroke="#D9A441" stroke-width="1.5" opacity="0.55"></circle>
+<g><use href="#hlRay" transform="rotate(0 200 200)"></use><use href="#hlRay" transform="rotate(15 200 200)"></use><use href="#hlRay" transform="rotate(30 200 200)"></use><use href="#hlRay" transform="rotate(45 200 200)"></use><use href="#hlRay" transform="rotate(60 200 200)"></use><use href="#hlRay" transform="rotate(75 200 200)"></use><use href="#hlRay" transform="rotate(90 200 200)"></use><use href="#hlRay" transform="rotate(105 200 200)"></use><use href="#hlRay" transform="rotate(120 200 200)"></use><use href="#hlRay" transform="rotate(135 200 200)"></use><use href="#hlRay" transform="rotate(150 200 200)"></use><use href="#hlRay" transform="rotate(165 200 200)"></use><use href="#hlRay" transform="rotate(180 200 200)"></use><use href="#hlRay" transform="rotate(195 200 200)"></use><use href="#hlRay" transform="rotate(210 200 200)"></use><use href="#hlRay" transform="rotate(225 200 200)"></use><use href="#hlRay" transform="rotate(240 200 200)"></use><use href="#hlRay" transform="rotate(255 200 200)"></use><use href="#hlRay" transform="rotate(270 200 200)"></use><use href="#hlRay" transform="rotate(285 200 200)"></use><use href="#hlRay" transform="rotate(300 200 200)"></use><use href="#hlRay" transform="rotate(315 200 200)"></use><use href="#hlRay" transform="rotate(330 200 200)"></use><use href="#hlRay" transform="rotate(345 200 200)"></use></g>
+<g><use href="#hlKey" transform="rotate(0 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(15 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(30 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(45 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(60 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(75 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(90 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(105 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(120 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(135 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(150 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(165 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(180 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(195 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(210 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(225 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(240 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(255 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(270 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(285 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(300 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(315 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(330 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(345 200 200) translate(200,52)"></use></g>
+<circle cx="200" cy="200" r="156" fill="none" stroke="#D9A441" stroke-width="1.1" opacity="0.5"></circle>
+<text font-family="'Bricolage Grotesque',sans-serif" font-weight="800" fill="#D9A441" letter-spacing="6" font-size="30"><textPath href="#hlTopArc" startOffset="50%" text-anchor="middle">HOLEY LIFT</textPath></text>
+<text font-family="'Plus Jakarta Sans',sans-serif" font-weight="700" fill="#D9A441" letter-spacing="2.6" font-size="11.5" opacity="0.85"><textPath href="#hlBotArc" startOffset="50%" text-anchor="middle">MEMBER · SUPPORTED · CHURCH · RIDES</textPath></text>
+<g fill="#D9A441"><path d="M62,200 l6,-6 l6,6 l-6,6 z"></path><path d="M338,200 l-6,-6 l-6,6 l6,6 z"></path></g>
+<circle cx="200" cy="200" r="132" fill="url(#hlInner)" stroke="#D9A441" stroke-width="1.6"></circle>
+<circle cx="200" cy="200" r="126" fill="none" stroke="#D9A441" stroke-width="1" opacity="0.55"></circle>
+<g><path d="M138,150 Q170,138 200,142 Q230,146 262,138 L256,170 Q228,178 200,174 Q172,170 144,180 Z" fill="#D9A441"></path><path d="M146,153 Q173,144 200,147 Q227,150 254,144" fill="none" stroke="#E4BA6B" stroke-width="2.4"></path><path d="M148,168 Q174,160 200,163 Q226,166 252,159" fill="none" stroke="#E4BA6B" stroke-width="2.4"></path><path d="M164,148 L172,172 M200,145 L200,173 M236,145 L228,172" stroke="#1F2A44" stroke-width="1.6" opacity="0.75"></path><path d="M138,150 l-9,-6 M138,150 l-4,-10 M262,138 l9,-5 M262,138 l4,-10" stroke="#D9A441" stroke-width="3" stroke-linecap="round"></path></g>
+<path d="M160,176 Q168,208 200,214 Q232,208 240,176" fill="none" stroke="#D9A441" stroke-width="3.4" stroke-linecap="round"></path>
+<path d="M200,214 L200,232" stroke="#D9A441" stroke-width="3.4" stroke-linecap="round"></path>
+<circle cx="200" cy="214" r="4.5" fill="#D9A441"></circle>
+<g fill="#D9A441" stroke="#1F2A44" stroke-width="1.4" stroke-linejoin="round"><use href="#hlHand" transform="rotate(-52 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(-40 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(-20 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(-8 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(8 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(20 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(40 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(52 200 200) translate(200,300)"></use></g>
+</svg></div>
+    <h1 class="wordmark">Holey Lift</h1>
+    <p class="subline">Deacon portal</p>
+    <div id="login-error" class="banner banner-danger" hidden role="alert"></div>
+    <label class="field">
+      <span class="field-label">Phone number</span>
+      <input id="login-phone" type="tel" autocomplete="tel" placeholder="(555) 555-0100" required>
+    </label>
+    <label class="field">
+      <span class="field-label">PIN</span>
+      <input id="login-pin" type="password" inputmode="numeric" autocomplete="current-password" class="mono" required>
+    </label>
+    <button type="submit" class="btn btn-primary btn-block" id="login-submit">Sign in</button>
+  </form>
+</div>
+
+<div id="shell-view" class="shell" hidden>
+  <aside class="sidebar">
+    <div class="sidebar-brand" aria-hidden="true">
+      <svg viewBox="0 0 400 400"><circle cx="200" cy="200" r="196" fill="#D9A441"/><circle cx="200" cy="200" r="186" fill="#2E3A59"/><circle cx="200" cy="200" r="132" fill="#1B2439" stroke="#D9A441" stroke-width="2"/><text x="200" y="215" font-family="'Bricolage Grotesque',sans-serif" font-weight="800" fill="#D9A441" font-size="90" text-anchor="middle">H</text></svg>
+      <span class="sidebar-word">Holey Lift</span>
+    </div>
+    <nav class="nav" id="nav" aria-label="Portal navigation"></nav>
+    <div class="sidebar-bottom">
+      <div class="signed-in">Signed in as <strong id="signed-in-name"></strong></div>
+      <button class="btn-signout" id="sign-out-btn" type="button"><span class="icon-log-out"></span><span>Sign out</span></button>
+    </div>
+  </aside>
+  <main class="content" id="content">
+    <section data-view="board" id="view-board" hidden></section>
+    <section data-view="approvals" id="view-approvals" hidden></section>
+    <section data-view="reports" id="view-reports" hidden></section>
+    <section data-view="members" id="view-members" hidden></section>
+    <section data-view="invites" id="view-invites" hidden></section>
+    <section data-view="church" id="view-church" hidden></section>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================= ICONS ============================= */
+// Inline Lucide-style icons (24x24, stroke=currentColor, stroke-width 2, fill none).
+var ICON_PATHS = {
+  radio:'<path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/>',
+  'user-check':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>',
+  'shield-alert':'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  'users-round':'<path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/>',
+  ticket:'<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>',
+  church:'<path d="M10 9h4"/><path d="M12 7v5"/><path d="M14 22v-4a2 2 0 0 0-4 0v4"/><path d="M18 22V5.6a1 1 0 0 0-.55-.9L12.9 2.5a2 2 0 0 0-1.8 0L6.55 4.7a1 1 0 0 0-.55.9V22"/><path d="m18 11 3.45 1.7a1 1 0 0 1 .55.9V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6.4a1 1 0 0 1 .55-.9L6 11"/>',
+  'log-out':'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+  phone:'<path d="M13.8 16.6a1 1 0 0 0 1.2-.3l.4-.5a2 2 0 0 1 1.6-.8h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.6 1.6l-.5.4a1 1 0 0 0-.3 1.2 14 14 0 0 0 6.2 6.4"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  wifi:'<path d="M12 20h.01"/><path d="M2 8.8a15 15 0 0 1 20 0"/><path d="M5 12.9a10 10 0 0 1 14 0"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/>',
+  'wifi-off':'<path d="M12 20h.01"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M19 12.9a10 10 0 0 0-2-1.5"/><path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M22 8.8a15 15 0 0 0-11.3-3.8"/><line x1="2" x2="22" y1="2" y2="22"/>'
+};
+function icon(name){
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICON_PATHS[name]||'')+'</svg>';
+}
+document.getElementById('sign-out-btn').querySelector('.icon-log-out').outerHTML = icon('log-out');
+
+/* ============================= STATE ============================= */
+var state = {
+  token: null,
+  route: 'board',
+  pending: [], reports: [], members: [], invites: [], church: null,
+  churchForm: { name:'', address:'', lat:null, lng:null },
+  counts: { pending:0, reports:0 },
+  ws: null, wsStatus: 'connecting', wsBackoff: 1000,
+  pollTimer: null, addrTimer: null
+};
+
+var NAV = [
+  { route:'board', label:'Live board', icon:'radio' },
+  { route:'approvals', label:'Approvals', icon:'user-check', badge:true },
+  { route:'reports', label:'Reports', icon:'shield-alert', badge:true },
+  { route:'members', label:'Members', icon:'users-round' },
+  { route:'invites', label:'Invites', icon:'ticket' },
+  { route:'church', label:'Church', icon:'church' }
+];
+
+/* ============================= UTIL ============================= */
+function esc(s){
+  return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function relTime(iso){
+  var ms = Date.now() - new Date(iso).getTime();
+  var min = Math.round(ms / 60000);
+  if (min < 1) return 'just now';
+  if (min === 1) return '1 min ago';
+  if (min < 60) return min + ' min ago';
+  var hr = Math.round(min / 60);
+  if (hr === 1) return '1 hour ago';
+  if (hr < 24) return hr + ' hours ago';
+  var days = Math.round(hr / 24);
+  return days === 1 ? '1 day ago' : days + ' days ago';
+}
+function fmtDate(iso){
+  return new Date(iso).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+}
+function showMsg(id, text, type){
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'banner banner-' + type;
+  el.hidden = false;
+}
+
+/* ============================= API ============================= */
+function ApiError(message){ this.message = message; this.name = 'ApiError'; }
+ApiError.prototype = Object.create(Error.prototype);
+
+function api(path, opts){
+  opts = opts || {};
+  var headers = Object.assign({}, opts.headers || {});
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  if (opts.body) headers['Content-Type'] = 'application/json';
+  return fetch(path, Object.assign({}, opts, { headers: headers })).then(function(res){
+    if (res.status === 401) {
+      signOut();
+      throw new ApiError('Your session ended. Please sign in again.');
+    }
+    return res.json().catch(function(){ return null; }).then(function(data){
+      if (!res.ok) {
+        throw new ApiError((data && data.error) || 'Something went wrong. Please try again.');
+      }
+      return data || {};
+    });
+  }, function(){
+    throw new ApiError('Could not reach the server. Check your connection.');
+  });
+}
+
+/* ============================= AUTH ============================= */
+document.getElementById('login-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var errEl = document.getElementById('login-error');
+  errEl.hidden = true;
+  var phone = document.getElementById('login-phone').value.trim();
+  var pin = document.getElementById('login-pin').value.trim();
+  var btn = document.getElementById('login-submit');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  api('/login', { method:'POST', body: JSON.stringify({ phone: phone, pin: pin }) }).then(function(data){
+    if (!data.user || !data.user.isDeacon) {
+      errEl.className = 'banner banner-notice';
+      errEl.textContent = 'This portal is for deacons. The app is where members ride.';
+      errEl.hidden = false;
+      return;
+    }
+    sessionStorage.setItem('token', data.token);
+    sessionStorage.setItem('name', data.user.name || '');
+    state.token = data.token;
+    enterShell();
+  }).catch(function(err){
+    errEl.className = 'banner banner-danger';
+    errEl.textContent = (err && err.message) || 'Could not sign in. Check your phone and PIN.';
+    errEl.hidden = false;
+  }).finally(function(){
+    btn.disabled = false; btn.textContent = 'Sign in';
+  });
+});
+
+document.getElementById('sign-out-btn').addEventListener('click', signOut);
+
+function signOut(){
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('name');
+  state.token = null;
+  if (state.ws) { state.ws.onclose = null; try { state.ws.close(); } catch(e){} state.ws = null; }
+  if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
+  document.getElementById('shell-view').hidden = true;
+  document.getElementById('login-view').hidden = false;
+  document.getElementById('login-form').reset();
+  document.getElementById('login-error').hidden = true;
+  location.hash = '';
+}
+
+function enterShell(){
+  document.getElementById('login-view').hidden = true;
+  document.getElementById('shell-view').hidden = false;
+  document.getElementById('signed-in-name').textContent = sessionStorage.getItem('name') || '';
+  connectWS();
+  state.pollTimer = setInterval(function(){ if (state.route === 'board') loadBoard(); }, 30000);
+  refreshBadgeCounts();
+  navigate(hashToRoute());
+}
+
+/* ============================= NAV / ROUTER ============================= */
+function renderNav(){
+  var nav = document.getElementById('nav');
+  nav.innerHTML = NAV.map(function(item){
+    return '<button type="button" class="nav-item" data-route="' + item.route + '">' +
+      '<span class="nav-icon">' + icon(item.icon) + '</span>' +
+      '<span class="nav-label">' + item.label + '</span>' +
+      (item.badge ? '<span class="nav-badge" id="badge-' + item.route + '" hidden>0</span>' : '') +
+      '</button>';
+  }).join('');
+  nav.addEventListener('click', function(e){
+    var btn = e.target.closest('.nav-item');
+    if (btn) navigate(btn.dataset.route);
+  });
+}
+renderNav();
+
+function updateNavBadges(){
+  var pb = document.getElementById('badge-approvals');
+  if (pb) { pb.textContent = state.counts.pending; pb.hidden = state.counts.pending === 0; }
+  var rb = document.getElementById('badge-reports');
+  if (rb) { rb.textContent = state.counts.reports; rb.hidden = state.counts.reports === 0; }
+}
+
+function refreshBadgeCounts(){
+  Promise.all([api('/admin/pending'), api('/admin/reports')]).then(function(res){
+    state.counts.pending = (res[0].users || []).length;
+    state.counts.reports = (res[1].reports || []).filter(function(r){ return r.status !== 'resolved'; }).length;
+    updateNavBadges();
+  }).catch(function(){ /* badges just stay hidden */ });
+}
+
+function hashToRoute(){
+  var m = location.hash.match(/^#\/(\w+)/);
+  var r = m ? m[1] : 'board';
+  return NAV.some(function(n){ return n.route === r; }) ? r : 'board';
+}
+window.addEventListener('hashchange', function(){
+  var r = hashToRoute();
+  if (r !== state.route) navigate(r);
+});
+
+function navigate(route){
+  if (!NAV.some(function(n){ return n.route === route; })) route = 'board';
+  state.route = route;
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    var active = el.dataset.route === route;
+    el.classList.toggle('active', active);
+    if (active) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('#content > section').forEach(function(sec){
+    sec.hidden = sec.dataset.view !== route;
+  });
+  location.hash = '#/' + route;
+  loadRouteData(route);
+}
+
+function loadRouteData(route){
+  if (route === 'board') loadBoard();
+  else if (route === 'approvals') loadApprovals();
+  else if (route === 'reports') loadReports();
+  else if (route === 'members') loadMembers();
+  else if (route === 'invites') loadInvites();
+  else if (route === 'church') loadChurch();
+}
+
+/* ============================= LIVE BOARD ============================= */
+function boardHeadHtml(){
+  return '<div class="board-head"><h1>Right now</h1>' +
+    '<div class="ws-indicator" id="ws-indicator"><span class="ws-icon"></span><span id="ws-text"></span></div></div>';
+}
+function applyWsIndicator(el, status){
+  if (!el) return;
+  var live = status === 'live';
+  el.classList.toggle('ws-live', live);
+  el.querySelector('.ws-icon').innerHTML = icon(live ? 'wifi' : 'wifi-off');
+  el.querySelector('#ws-text').textContent = live ? 'live' : (status === 'connecting' ? 'connecting…' : 'reconnecting…');
+}
+function setWsStatus(status){
+  state.wsStatus = status;
+  applyWsIndicator(document.getElementById('ws-indicator'), status);
+}
+
+function waitingCardHtml(r){
+  var dest = r.destinationLabel ? '<div class="ride-sub muted">Going to ' + esc(r.destinationLabel) + '</div>' : '';
+  return '<div class="ride-card breath">' +
+    '<div class="ride-name">' + esc(r.riderName) + '</div>' + dest +
+    '<div class="ride-time helper">' + relTime(r.createdAt) + '</div></div>';
+}
+function onroadCardHtml(r){
+  var status = r.status === 'picked_up'
+    ? '<div class="chip chip-success">in the car</div>'
+    : '<div class="ride-status muted">on the way</div>';
+  return '<div class="ride-card">' +
+    '<div class="ride-name">' + esc(r.riderName) + '</div>' +
+    '<div class="ride-sub muted">with ' + esc(r.driverName || 'a driver') + '</div>' +
+    status +
+    '<div class="ride-time helper">' + relTime(r.createdAt) + '</div></div>';
+}
+
+function loadBoard(){
+  api('/admin/board').then(function(data){
+    renderBoard(data.rides || []);
+  }).catch(function(err){
+    var root = document.getElementById('view-board');
+    root.innerHTML = boardHeadHtml() + '<div class="banner banner-danger">' + esc((err && err.message) || 'Could not load the board.') + '</div>';
+    applyWsIndicator(document.getElementById('ws-indicator'), state.wsStatus);
+  });
+}
+
+function renderBoard(rides){
+  var root = document.getElementById('view-board');
+  var waiting = rides.filter(function(r){ return r.status === 'open'; });
+  var onroad = rides.filter(function(r){ return r.status === 'accepted' || r.status === 'picked_up'; });
+  if (rides.length === 0) {
+    root.innerHTML = boardHeadHtml() +
+      '<div class="empty-state"><p class="empty-title">All quiet. No one needs a ride right now.</p>' +
+      '<p class="muted">We’ll let the congregation know the moment someone asks for a lift.</p></div>';
+  } else {
+    root.innerHTML = boardHeadHtml() +
+      '<div class="board-columns">' +
+      '<div class="board-col"><h2>Waiting for a driver (' + waiting.length + ')</h2>' +
+      '<div class="ride-list">' + (waiting.length ? waiting.map(waitingCardHtml).join('') : '<p class="muted empty-col">No one waiting right now.</p>') + '</div></div>' +
+      '<div class="board-col"><h2>On the road (' + onroad.length + ')</h2>' +
+      '<div class="ride-list">' + (onroad.length ? onroad.map(onroadCardHtml).join('') : '<p class="muted empty-col">No one on the road right now.</p>') + '</div></div>' +
+      '</div>';
+  }
+  // ponytail: no separate relative-time timer — the 30s poll + ws pushes already re-render with fresh times.
+  applyWsIndicator(document.getElementById('ws-indicator'), state.wsStatus);
+}
+
+/* ============================= WEBSOCKET ============================= */
+function connectWS(){
+  if (!state.token) return;
+  var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  var ws;
+  try {
+    ws = new WebSocket(proto + '://' + location.host + '/live?token=' + encodeURIComponent(state.token));
+  } catch (e) {
+    setWsStatus('reconnecting');
+    setTimeout(connectWS, state.wsBackoff);
+    state.wsBackoff = Math.min(state.wsBackoff * 2, 30000);
+    return;
+  }
+  state.ws = ws;
+  setWsStatus('connecting');
+  ws.onopen = function(){ state.wsBackoff = 1000; setWsStatus('live'); };
+  ws.onmessage = function(evt){
+    try {
+      var msg = JSON.parse(evt.data);
+      if (msg && msg.type === 'rides_changed') loadBoard();
+    } catch(e) {}
+  };
+  ws.onclose = function(){
+    if (!state.token) return; // signed out on purpose
+    setWsStatus('reconnecting');
+    setTimeout(connectWS, state.wsBackoff);
+    state.wsBackoff = Math.min(state.wsBackoff * 2, 30000);
+  };
+  ws.onerror = function(){ try { ws.close(); } catch(e){} };
+}
+
+/* ============================= APPROVALS ============================= */
+function loadApprovals(){
+  api('/admin/pending').then(function(data){
+    state.pending = data.users || [];
+    state.counts.pending = state.pending.length;
+    updateNavBadges();
+    renderApprovals();
+  }).catch(function(err){
+    document.getElementById('view-approvals').innerHTML = '<h1>Approvals</h1><div class="banner banner-danger">' + esc((err && err.message) || 'Could not load approvals.') + '</div>';
+  });
+}
+function approvalRowHtml(u){
+  return '<li class="row-item">' +
+    '<div class="row-main"><div class="row-name">' + esc(u.name) + '</div>' +
+    '<div class="row-sub"><span class="mono">' + esc(u.phone) + '</span> <span class="muted">· requested ' + relTime(u.createdAt) + '</span></div></div>' +
+    '<div class="row-actions">' +
+    '<button class="btn btn-primary btn-sm" data-action="approve" data-id="' + esc(u.id) + '">' + icon('check') + 'Approve</button>' +
+    '<button class="btn btn-outline-danger btn-sm" data-action="reject" data-id="' + esc(u.id) + '">' + icon('x') + 'Reject</button>' +
+    '</div></li>';
+}
+function renderApprovals(){
+  var root = document.getElementById('view-approvals');
+  root.innerHTML = '<h1>Approvals</h1>' +
+    '<div id="approvals-msg" class="banner banner-danger" hidden></div>' +
+    (state.pending.length
+      ? '<ul class="row-list">' + state.pending.map(approvalRowHtml).join('') + '</ul>'
+      : '<div class="empty-state"><p class="empty-title">No one is waiting on approval right now.</p></div>');
+}
+document.getElementById('view-approvals').addEventListener('click', function(e){
+  var btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  var id = btn.dataset.id;
+  if (btn.dataset.action === 'approve') approveUser(id);
+  else if (btn.dataset.action === 'reject') rejectUser(id);
+});
+function approveUser(id){
+  var idx = state.pending.findIndex(function(u){ return String(u.id) === String(id); });
+  if (idx === -1) return;
+  var removed = state.pending.splice(idx, 1)[0];
+  state.counts.pending = state.pending.length;
+  renderApprovals(); updateNavBadges();
+  api('/admin/users/' + encodeURIComponent(id) + '/approve', { method:'POST' }).catch(function(err){
+    state.pending.splice(idx, 0, removed);
+    state.counts.pending = state.pending.length;
+    renderApprovals(); updateNavBadges();
+    showMsg('approvals-msg', (err && err.message) || ('Could not approve ' + removed.name + '. Please try again.'), 'danger');
+  });
+}
+function rejectUser(id){
+  var idx = state.pending.findIndex(function(u){ return String(u.id) === String(id); });
+  if (idx === -1) return;
+  var removed = state.pending.splice(idx, 1)[0];
+  state.counts.pending = state.pending.length;
+  renderApprovals(); updateNavBadges();
+  api('/admin/users/' + encodeURIComponent(id) + '/reject', { method:'POST' }).catch(function(err){
+    state.pending.splice(idx, 0, removed);
+    state.counts.pending = state.pending.length;
+    renderApprovals(); updateNavBadges();
+    showMsg('approvals-msg', (err && err.message) || ('Could not reject ' + removed.name + '. Please try again.'), 'danger');
+  });
+}
+
+/* ============================= REPORTS ============================= */
+function loadReports(){
+  api('/admin/reports').then(function(data){
+    state.reports = data.reports || [];
+    state.counts.reports = state.reports.filter(function(r){ return r.status !== 'resolved'; }).length;
+    updateNavBadges();
+    renderReports();
+  }).catch(function(err){
+    document.getElementById('view-reports').innerHTML = '<h1>Reports</h1><div class="banner banner-danger">' + esc((err && err.message) || 'Could not load reports.') + '</div>';
+  });
+}
+function reportMetaHtml(r){
+  return esc(r.reporterName) + (r.subjectName ? ' about ' + esc(r.subjectName) : '') + ' · ' + relTime(r.createdAt);
+}
+function renderReports(){
+  var open = state.reports.filter(function(r){ return r.status !== 'resolved'; });
+  var resolved = state.reports.filter(function(r){ return r.status === 'resolved'; });
+  var root = document.getElementById('view-reports');
+  var html = '<h1>Reports</h1><div id="reports-msg" class="banner banner-danger" hidden></div>';
+  if (state.reports.length === 0) {
+    html += '<div class="empty-state"><p class="empty-title">No safety reports have been filed.</p><p class="muted">That’s good news.</p></div>';
+  } else {
+    html += open.length
+      ? open.map(function(r){
+          return '<div class="report-card report-card--open">' +
+            '<div class="report-meta muted">' + reportMetaHtml(r) + '</div>' +
+            '<p class="report-desc">' + esc(r.description) + '</p>' +
+            '<button class="btn btn-primary btn-sm" data-action="resolve" data-id="' + esc(r.id) + '">Resolve</button>' +
+            '</div>';
+        }).join('')
+      : '<p class="muted">No open reports right now.</p>';
+    if (resolved.length) {
+      html += '<details class="resolved-group"><summary>Resolved reports (' + resolved.length + ')</summary>' +
+        '<ul class="resolved-list">' + resolved.map(function(r){
+          return '<li>' + reportMetaHtml(r) + ' — ' + esc(r.description) + '</li>';
+        }).join('') + '</ul></details>';
+    }
+  }
+  root.innerHTML = html;
+}
+document.getElementById('view-reports').addEventListener('click', function(e){
+  var btn = e.target.closest('button[data-action="resolve"]');
+  if (btn) resolveReport(btn.dataset.id);
+});
+function resolveReport(id){
+  var item = state.reports.find(function(r){ return String(r.id) === String(id); });
+  if (!item) return;
+  var prev = item.status;
+  item.status = 'resolved';
+  state.counts.reports = state.reports.filter(function(r){ return r.status !== 'resolved'; }).length;
+  renderReports(); updateNavBadges();
+  api('/admin/reports/' + encodeURIComponent(id) + '/resolve', { method:'POST' }).catch(function(err){
+    item.status = prev;
+    state.counts.reports = state.reports.filter(function(r){ return r.status !== 'resolved'; }).length;
+    renderReports(); updateNavBadges();
+    showMsg('reports-msg', (err && err.message) || 'Could not resolve that report. Please try again.', 'danger');
+  });
+}
+
+/* ============================= MEMBERS ============================= */
+function loadMembers(){
+  api('/admin/members').then(function(data){
+    state.members = data.users || [];
+    renderMembers();
+  }).catch(function(err){
+    document.getElementById('view-members').innerHTML = '<h1>Members</h1><div class="banner banner-danger">' + esc((err && err.message) || 'Could not load members.') + '</div>';
+  });
+}
+function memberRowHtml(u){
+  return '<tr>' +
+    '<td>' + esc(u.name) + '</td>' +
+    '<td><a class="mono" href="tel:' + esc(u.phone) + '">' + esc(u.phone) + '</a></td>' +
+    '<td>' + (u.isDeacon ? '<span class="pill pill-gold">DEACON</span>' : '<span class="muted">Member</span>') + '</td>' +
+    '<td>' + esc(cap(u.status)) + '</td>' +
+    '<td>' + fmtDate(u.createdAt) + '</td>' +
+    '<td>' + (u.isDeacon ? '' : '<button class="btn btn-secondary btn-sm" data-action="make-deacon" data-id="' + esc(u.id) + '" data-name="' + esc(u.name) + '">Make deacon</button>') + '</td>' +
+    '</tr>';
+}
+function renderMembers(){
+  var root = document.getElementById('view-members');
+  root.innerHTML = '<h1>Members</h1><div id="members-msg" class="banner banner-danger" hidden></div>' +
+    (state.members.length
+      ? '<div class="card" style="padding:0;overflow-x:auto;"><table class="table"><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead><tbody>' +
+        state.members.map(memberRowHtml).join('') + '</tbody></table></div>'
+      : '<div class="empty-state"><p class="empty-title">No members yet.</p></div>');
+}
+document.getElementById('view-members').addEventListener('click', function(e){
+  var btn = e.target.closest('button[data-action="make-deacon"]');
+  if (btn) makeDeacon(btn.dataset.id, btn.dataset.name);
+});
+function makeDeacon(id, name){
+  if (!confirm('Make ' + name + ' a deacon? They’ll be able to approve members and manage the portal.')) return;
+  api('/admin/users/' + encodeURIComponent(id) + '/make-deacon', { method:'POST' }).then(function(){
+    var m = state.members.find(function(u){ return String(u.id) === String(id); });
+    if (m) m.isDeacon = true;
+    renderMembers();
+  }).catch(function(err){
+    showMsg('members-msg', (err && err.message) || ('Could not make ' + name + ' a deacon. Please try again.'), 'danger');
+  });
+}
+
+/* ============================= INVITES ============================= */
+function loadInvites(revealCode){
+  api('/admin/invites').then(function(data){
+    state.invites = data.invites || [];
+    renderInvites(revealCode);
+  }).catch(function(err){
+    document.getElementById('view-invites').innerHTML = '<h1>Invites</h1><div class="banner banner-danger">' + esc((err && err.message) || 'Could not load invites.') + '</div>';
+  });
+}
+function inviteRowHtml(inv){
+  return '<div class="invite-row' + (inv.revoked ? ' invite-row--revoked' : '') + '">' +
+    '<span class="mono invite-code-sm">' + esc(inv.code) + '</span>' +
+    '<span class="muted">' + inv.uses + '/' + inv.maxUses + ' uses</span>' +
+    '<span class="muted">by ' + esc(inv.createdByName || 'a deacon') + '</span>' +
+    (inv.revoked ? '<span class="muted">revoked</span>' : '<button class="btn btn-outline-danger btn-sm" data-action="revoke" data-code="' + esc(inv.code) + '">Revoke</button>') +
+    '</div>';
+}
+function renderInvites(revealCode){
+  var root = document.getElementById('view-invites');
+  var reveal = state.invites.find(function(i){ return i.code === revealCode; });
+  root.innerHTML =
+    '<h1>Invites</h1>' +
+    '<div id="invites-msg" class="banner banner-danger" hidden></div>' +
+    '<div class="card">' +
+      '<h2>Create invite</h2>' +
+      '<div class="field-row" style="margin-top:12px;">' +
+        '<label class="field"><span class="field-label">Max uses</span><input type="number" id="invite-maxuses" min="1" value="10"></label>' +
+        '<button type="button" class="btn btn-primary" id="invite-create-btn">' + icon('plus') + 'Create</button>' +
+      '</div>' +
+      (revealCode ? '<div class="invite-reveal-box"><div class="invite-code-huge mono">' + esc(revealCode) + '</div>' +
+        '<button type="button" class="btn btn-secondary btn-sm invite-copy-btn" data-code="' + esc(revealCode) + '">Copy</button>' +
+        (reveal ? '<p class="helper" style="margin-top:8px;">Up to ' + reveal.maxUses + ' people can use this code.</p>' : '') +
+        '</div>' : '') +
+    '</div>' +
+    '<div class="card invite-list-card">' +
+      '<h2>All invites</h2>' +
+      (state.invites.length ? state.invites.map(inviteRowHtml).join('') : '<p class="muted">No invites yet. Create one above to bring someone in.</p>') +
+    '</div>';
+}
+document.getElementById('view-invites').addEventListener('click', function(e){
+  if (e.target.closest('#invite-create-btn')) { createInvite(); return; }
+  var copyBtn = e.target.closest('.invite-copy-btn');
+  if (copyBtn) { copyInviteCode(copyBtn); return; }
+  var revokeBtn = e.target.closest('button[data-action="revoke"]');
+  if (revokeBtn) revokeInvite(revokeBtn.dataset.code);
+});
+function createInvite(){
+  var input = document.getElementById('invite-maxuses');
+  var maxUses = parseInt(input.value, 10);
+  if (!maxUses || maxUses < 1) maxUses = 10;
+  var btn = document.getElementById('invite-create-btn');
+  btn.disabled = true;
+  api('/admin/invites', { method:'POST', body: JSON.stringify({ maxUses: maxUses }) }).then(function(data){
+    loadInvites(data.code);
+  }).catch(function(err){
+    btn.disabled = false;
+    showMsg('invites-msg', (err && err.message) || 'Could not create an invite. Please try again.', 'danger');
+  });
+}
+function copyInviteCode(btn){
+  var code = btn.dataset.code;
+  navigator.clipboard.writeText(code).then(function(){
+    var prev = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(function(){ btn.textContent = prev; }, 1500);
+  }).catch(function(){});
+}
+function revokeInvite(code){
+  var item = state.invites.find(function(i){ return i.code === code; });
+  if (!item || item.revoked) return;
+  item.revoked = true;
+  renderInvites();
+  api('/admin/invites/' + encodeURIComponent(code) + '/revoke', { method:'POST' }).catch(function(err){
+    item.revoked = false;
+    renderInvites();
+    showMsg('invites-msg', (err && err.message) || 'Could not revoke that invite. Please try again.', 'danger');
+  });
+}
+
+/* ============================= CHURCH ============================= */
+function loadChurch(){
+  api('/church').then(function(data){
+    state.church = data.church || null;
+    state.churchForm = {
+      name: state.church ? state.church.name : '',
+      address: state.church ? state.church.address : '',
+      lat: state.church ? state.church.lat : null,
+      lng: state.church ? state.church.lng : null
+    };
+    renderChurchView();
+  }).catch(function(err){
+    document.getElementById('view-church').innerHTML = '<h1>Church</h1><div class="banner banner-danger">' + esc((err && err.message) || 'Could not load the church.') + '</div>';
+  });
+}
+function churchCurrentHtml(church){
+  return church
+    ? '<h2>' + esc(church.name) + '</h2><p class="muted">' + esc(church.address) + '</p>'
+    : '<p class="muted">No church set up yet. Add one using the form below.</p>';
+}
+function renderChurchView(){
+  var f = state.churchForm;
+  document.getElementById('view-church').innerHTML =
+    '<h1>Church</h1>' +
+    '<div class="card" id="church-current">' + churchCurrentHtml(state.church) + '</div>' +
+    '<div class="card church-edit">' +
+      '<h2>Edit</h2>' +
+      '<label class="field" style="margin-top:12px;"><span class="field-label">Name</span><input id="church-name" type="text" value="' + esc(f.name) + '"></label>' +
+      '<label class="field"><span class="field-label">Search for an address</span><input id="church-address-search" type="text" placeholder="Start typing an address…" autocomplete="off"></label>' +
+      '<p class="helper">Selected address: <span id="church-selected-address">' + (f.address ? esc(f.address) : 'none yet') + '</span></p>' +
+      '<div id="church-results" class="church-results"></div>' +
+      '<p id="church-save-msg" class="helper" hidden></p>' +
+      '<button type="button" class="btn btn-primary" id="church-save-btn">Save</button>' +
+      '<p class="helper" style="margin-top:12px;">Address search uses OpenStreetMap’s Nominatim service.</p>' +
+    '</div>';
+}
+var churchView = document.getElementById('view-church');
+churchView.addEventListener('input', function(e){
+  if (e.target.id === 'church-address-search') handleAddressInput(e.target);
+});
+churchView.addEventListener('click', function(e){
+  if (e.target.closest('#church-save-btn')) { saveChurch(); return; }
+  var resultBtn = e.target.closest('.church-result-btn');
+  if (resultBtn) pickAddress(resultBtn);
+});
+function handleAddressInput(inputEl){
+  clearTimeout(state.addrTimer);
+  var q = inputEl.value.trim();
+  var resultsEl = document.getElementById('church-results');
+  if (resultsEl) resultsEl.innerHTML = '';
+  if (q.length < 3) return;
+  state.addrTimer = setTimeout(function(){ searchAddress(q); }, 500);
+}
+function searchAddress(q){
+  // Nominatim usage policy: identify the calling application via a Referer/User-Agent header.
+  // The browser sends our page's Referer automatically on this same fetch — no extra header needed.
+  fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&q=' + encodeURIComponent(q) + '&limit=5')
+    .then(function(res){ return res.json(); })
+    .then(renderChurchResults)
+    .catch(function(){
+      var el = document.getElementById('church-results');
+      if (el) el.innerHTML = '<p class="muted">Could not search addresses right now.</p>';
+    });
+}
+function renderChurchResults(list){
+  var el = document.getElementById('church-results');
+  if (!el) return;
+  if (!list || !list.length) { el.innerHTML = '<p class="muted">No matches. Try a different search.</p>'; return; }
+  el.innerHTML = list.map(function(r){
+    return '<button type="button" class="church-result-btn" data-lat="' + esc(r.lat) + '" data-lng="' + esc(r.lon) + '" data-address="' + esc(r.display_name) + '">' + esc(r.display_name) + '</button>';
+  }).join('');
+}
+function pickAddress(btn){
+  state.churchForm.address = btn.dataset.address;
+  state.churchForm.lat = parseFloat(btn.dataset.lat);
+  state.churchForm.lng = parseFloat(btn.dataset.lng);
+  document.getElementById('church-selected-address').textContent = state.churchForm.address;
+  document.getElementById('church-results').innerHTML = '';
+  document.getElementById('church-address-search').value = '';
+}
+function saveChurch(){
+  var nameInput = document.getElementById('church-name');
+  var name = nameInput.value.trim();
+  var msgEl = document.getElementById('church-save-msg');
+  if (!name || state.churchForm.lat == null || state.churchForm.lng == null) {
+    msgEl.textContent = 'Add a name and pick an address before saving.';
+    msgEl.className = 'helper text-danger';
+    msgEl.hidden = false;
+    return;
+  }
+  var btn = document.getElementById('church-save-btn');
+  btn.disabled = true;
+  api('/admin/church', { method:'PUT', body: JSON.stringify({
+    name: name, address: state.churchForm.address, lat: state.churchForm.lat, lng: state.churchForm.lng
+  }) }).then(function(){
+    state.church = { name: name, address: state.churchForm.address, lat: state.churchForm.lat, lng: state.churchForm.lng };
+    document.getElementById('church-current').innerHTML = churchCurrentHtml(state.church);
+    msgEl.textContent = 'Saved.';
+    msgEl.className = 'helper text-success';
+    msgEl.hidden = false;
+  }).catch(function(err){
+    msgEl.textContent = (err && err.message) || 'Could not save. Please try again.';
+    msgEl.className = 'helper text-danger';
+    msgEl.hidden = false;
+  }).finally(function(){
+    btn.disabled = false;
+  });
+}
+
+/* ============================= INIT ============================= */
+var savedToken = sessionStorage.getItem('token');
+if (savedToken) {
+  state.token = savedToken;
+  enterShell();
+}
+
+})();
+</script>
+</body>
+</html>

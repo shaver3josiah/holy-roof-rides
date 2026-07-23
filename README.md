@@ -103,6 +103,17 @@ that's what powers the rider's one-tap "Take me to Church" button.
 Once installed, each member sets their server's address once in Settings
 and they're set.
 
+## Deacon portal
+
+Deacons don't need the app for deacon work. Open
+`http://YOUR_SERVER:8787/portal` in a browser on any computer — the church
+office desktop, a laptop, whatever's around — for approvals, safety
+reports, members, invites, and church setup, plus a live ride board built
+to sit on a lobby or office screen. It ships inside the server, so there's
+nothing extra to install — just open the URL.
+
+The board shows who's riding, never where — no map, no coordinates.
+
 ## Monorepo layout
 
 ```

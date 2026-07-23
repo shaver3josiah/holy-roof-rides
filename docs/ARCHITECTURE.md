@@ -47,6 +47,7 @@ church-sized deployment doesn't need one.
 | `church.js` | `GET /church` (any member) and `PUT /admin/church` (deacon-only) — the congregation's own public address, read/written from the `settings` table. Powers "Take me to Church". |
 | `admin.js` | Deacon-only member approval, invite code management, safety report triage; plus the member-facing `POST /reports`. |
 | `live.js` | The `/live` WebSocket: authenticates the connection, relays `location`/`rider_location` messages between the two people on an active ride, and nothing else. |
+| `portal.js` | Serves `GET /portal` — the deacon desktop portal, a single self-contained HTML file (`server/portal/index.html`) read once at startup. Same origin as the API, no build step. |
 | `index.js` | Wires everything into a Fastify app, generates the founding-deacon bootstrap code, starts the HTTP listener. |
 
 ### `app/src/`
@@ -86,7 +87,9 @@ church-sized deployment doesn't need one.
 | `POST /admin/users/:id/approve\|reject\|make-deacon` | deacon | Membership decisions |
 | `POST /admin/invites`, `GET /admin/invites`, `POST /admin/invites/:code/revoke` | deacon | Invite code lifecycle |
 | `GET /admin/reports`, `POST /admin/reports/:id/resolve` | deacon | Safety report triage |
+| `GET /admin/board` | deacon | Live ride board for the desktop portal — deliberately no coordinates, deacons see WHO is riding, never precisely where |
 | `WS /live?token=...` | session | Real-time ride events + location relay |
+| `GET /portal` | none | Deacon desktop portal — static HTML page (approvals, invites, members, reports, church setup, live ride board) |
 
 Full request/response shapes live as contract comments at the top of each
 `server/src/*.js` file — that's the source of truth, not this table.

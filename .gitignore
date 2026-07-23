@@ -5,6 +5,8 @@ build/
 *.log
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 .env
 .env.*
 app/android/

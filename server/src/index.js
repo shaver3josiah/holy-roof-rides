@@ -7,6 +7,7 @@ import rideRoutes from './rides.js';
 import adminRoutes from './admin.js';
 import liveRoutes from './live.js';
 import churchRoutes from './church.js';
+import portalRoutes from './portal.js';
 
 /** Build the app (exported for tests). Pass ':memory:' dbPath in tests. */
 export function buildApp({ dbPath, bootstrapCode } = {}) {
@@ -44,6 +45,7 @@ export function buildApp({ dbPath, bootstrapCode } = {}) {
   app.register(adminRoutes);
   app.register(liveRoutes);
   app.register(churchRoutes);
+  app.register(portalRoutes);
 
   return app;
 }

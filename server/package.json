@@ -6,7 +6,9 @@
   "engines": { "node": ">=22.5" },
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "demo:seed": "node scripts/seed-demo.js",
+    "demo:driver": "node scripts/demo-driver.js"
   },
   "dependencies": {
     "fastify": "^5.2.0",

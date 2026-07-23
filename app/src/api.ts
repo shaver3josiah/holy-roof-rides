@@ -24,14 +24,24 @@ async function req<T>(
   path: string,
   opts: { method?: string; body?: unknown; token?: string } = {}
 ): Promise<T> {
-  const res = await fetch(baseUrl + path, {
-    method: opts.method ?? 'GET',
-    headers: {
-      'content-type': 'application/json',
-      ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}),
-    },
-    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(baseUrl + path, {
+      method: opts.method ?? 'GET',
+      headers: {
+        'content-type': 'application/json',
+        ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}),
+      },
+      body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+    });
+  } catch {
+    // Network failure (server down, wrong address, different Wi-Fi). Status 0
+    // so screens can tell it apart from a real server response.
+    throw new ApiError(
+      0,
+      `Can't reach the church server at ${baseUrl}. Check the server address and make sure you're on the same Wi-Fi.`
+    );
+  }
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try {

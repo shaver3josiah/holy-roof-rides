@@ -19,7 +19,8 @@ import { useSession } from '../../App';
 import * as api from '../api';
 import { ApiError } from '../api';
 import { saveAuth } from '../store';
-import { colors, radius, spacing, styles } from '../theme';
+import { Banner, Button } from '../components/ui';
+import { colors, fonts, spacing, styles, type } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PinLogin'>;
 
@@ -61,17 +62,14 @@ export default function PinLoginScreen({ navigation, route }: Props) {
         contentContainerStyle={{ padding: spacing.l, flexGrow: 1, justifyContent: 'center' }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={{ fontSize: 44, textAlign: 'center' }}>👋</Text>
-        <Text style={[styles.h1, { marginTop: spacing.xs, marginBottom: spacing.xs, textAlign: 'center' }]}>
-          Welcome back
-        </Text>
+        <Text style={[styles.h1, { marginBottom: spacing.xs, textAlign: 'center' }]}>Welcome back 👋</Text>
         <Text style={[styles.body, { marginBottom: spacing.l, color: colors.muted, textAlign: 'center' }]}>
           Log in with your phone number and PIN.
         </Text>
 
         <View style={[styles.card, { marginBottom: spacing.l }]}>
           <View style={{ marginBottom: spacing.m }}>
-            <Text style={[styles.mutedText, { marginBottom: spacing.xs, fontWeight: '600' }]}>Phone number</Text>
+            <Text style={fieldLabel}>Phone number</Text>
             <TextInput
               style={styles.input}
               value={phone}
@@ -84,17 +82,9 @@ export default function PinLoginScreen({ navigation, route }: Props) {
           </View>
 
           <View>
-            <Text style={[styles.mutedText, { marginBottom: spacing.xs, fontWeight: '600' }]}>PIN</Text>
+            <Text style={fieldLabel}>PIN</Text>
             <TextInput
-              style={[
-                styles.input,
-                {
-                  fontSize: 28,
-                  letterSpacing: 10,
-                  textAlign: 'center',
-                  paddingVertical: 18,
-                },
-              ]}
+              style={[styles.input, pinInput]}
               value={pin}
               onChangeText={(t) => setPin(t.replace(/\D/g, ''))}
               keyboardType="numeric"
@@ -107,29 +97,40 @@ export default function PinLoginScreen({ navigation, route }: Props) {
         </View>
 
         {error && (
-          <View
-            style={{
-              backgroundColor: 'rgba(179,70,46,0.08)',
-              borderRadius: radius.s,
-              padding: spacing.m,
-              marginBottom: spacing.m,
-            }}
-          >
-            <Text style={[styles.body, { color: colors.danger }]}>{error}</Text>
-          </View>
+          <Banner kind="error" style={{ marginBottom: spacing.m }}>
+            {error}
+          </Banner>
         )}
 
-        <Pressable style={styles.button} onPress={submit} disabled={loading}>
-          <Text style={styles.buttonText}>{loading ? 'Logging in…' : 'Log in'}</Text>
-        </Pressable>
+        <Button label="Log in" onPress={submit} loading={loading} disabled={loading} />
 
         <Pressable
-          style={{ marginTop: spacing.l, alignItems: 'center', paddingVertical: spacing.s }}
+          style={({ pressed }) => [
+            { marginTop: spacing.l, alignItems: 'center', paddingVertical: spacing.s },
+            { opacity: pressed ? 0.6 : 1, transform: [{ translateY: pressed ? 1 : 0 }] },
+          ]}
           onPress={() => navigation.navigate('Join')}
         >
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>Have an invite code? Join</Text>
+          <Text style={{ fontFamily: fonts.sansSemiBold, fontSize: type.base, color: colors.primary }}>
+            Have an invite code? Join
+          </Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+
+const fieldLabel = {
+  fontFamily: fonts.sansSemiBold,
+  fontSize: type.s,
+  color: colors.muted,
+  marginBottom: spacing.xs,
+} as const;
+
+const pinInput = {
+  fontFamily: fonts.mono,
+  fontSize: type.xl,
+  letterSpacing: 10,
+  textAlign: 'center',
+  paddingVertical: 18,
+} as const;

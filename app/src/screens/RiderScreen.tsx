@@ -35,22 +35,26 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
+  Easing,
   Linking,
   Modal,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { CarFront, Church as ChurchIcon, Search, TriangleAlert } from 'lucide-react-native';
 import { useSession } from '../../App';
 import * as api from '../api';
 import { ApiError } from '../api';
 import * as geo from '../geo';
 import { addRecentPlace, loadRecentPlaces } from '../store';
 import OsmMap, { type OsmMapProps } from '../components/OsmMap';
-import { colors, radius, spacing, styles } from '../theme';
+import { Banner, Button, Chip, EmptyState } from '../components/ui';
+import { colors, fonts, motion, radius, spacing, styles, type } from '../theme';
 import type { Church, LatLng, LiveMessage, Place, Ride } from '../types';
 
 type Stage = 'idle' | 'preview' | 'waiting' | 'active';
@@ -76,6 +80,66 @@ function haversineMeters(a: LatLng, b: LatLng): number {
 function destLabelFor(dest: Ride['destination']): string {
   return dest.label ?? `${dest.lat.toFixed(3)}, ${dest.lng.toFixed(3)}`;
 }
+
+const localStyles = StyleSheet.create({
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.s,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.s,
+    paddingHorizontal: spacing.m,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: spacing.s,
+    paddingVertical: 12,
+    fontFamily: fonts.sans,
+    fontSize: type.base,
+    color: colors.text,
+  },
+  churchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
+    marginTop: spacing.m,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.m,
+    backgroundColor: colors.sunken,
+    borderRadius: radius.s,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  churchButtonText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: type.base,
+    color: colors.text,
+  },
+  resultItem: { paddingVertical: 12 },
+  resultItemBorder: { borderTopWidth: 1, borderTopColor: colors.border },
+  etaText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: type.sm,
+    lineHeight: Math.round(type.sm * 1.5),
+    color: colors.muted,
+  },
+  reportTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.m,
+    paddingVertical: spacing.s,
+    minHeight: 44,
+  },
+  reportTriggerText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: type.sm,
+    color: colors.danger,
+  },
+});
 
 // --- small presentational pieces ---
 
@@ -113,31 +177,27 @@ function IdleCard({
   return (
     <View style={styles.card}>
       <Text style={styles.h2}>Where do you need to go?</Text>
-      <TextInput
-        style={[styles.input, { marginTop: spacing.s }]}
-        value={query}
-        onChangeText={onChangeQuery}
-        placeholder="Search for a place"
-        placeholderTextColor={colors.muted}
-        returnKeyType="search"
-      />
+      <View style={localStyles.searchBox}>
+        <Search size={18} color={colors.muted} />
+        <TextInput
+          style={localStyles.searchInput}
+          value={query}
+          onChangeText={onChangeQuery}
+          placeholder="Search for a place"
+          placeholderTextColor={colors.muted}
+          returnKeyType="search"
+        />
+      </View>
       {church && !showingSearch && (
         <Pressable
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginTop: spacing.m,
-            paddingVertical: 12,
-            paddingHorizontal: spacing.m,
-            backgroundColor: colors.bg,
-            borderRadius: radius.s,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
+          style={({ pressed }) => [
+            localStyles.churchButton,
+            pressed && { backgroundColor: colors.sunkenPressed, transform: [{ translateY: 1 }] },
+          ]}
           onPress={() => onSelectPlace({ label: church.name, lat: church.lat, lng: church.lng })}
         >
-          <Text style={{ fontSize: 18 }}>⛪</Text>
-          <Text style={[styles.body, { marginLeft: spacing.s, fontWeight: '600' }]}>Take me to Church</Text>
+          <ChurchIcon size={20} color={colors.primary} />
+          <Text style={localStyles.churchButtonText}>Take me to Church</Text>
         </Pressable>
       )}
       {showingSearch ? (
@@ -148,20 +208,24 @@ function IdleCard({
               <Text style={[styles.mutedText, { marginLeft: spacing.s }]}>Searching…</Text>
             </View>
           ) : searchError ? (
-            <Text style={{ color: colors.danger, paddingVertical: spacing.s }}>{searchError}</Text>
+            <Banner kind="error" style={{ marginTop: spacing.s }}>
+              {searchError}
+            </Banner>
           ) : searchResults && searchResults.length === 0 ? (
-            <Text style={[styles.mutedText, { paddingVertical: spacing.s }]}>
-              No places found. Try a different search, or long-press the map.
-            </Text>
+            <EmptyState
+              icon={Search}
+              title="No places found"
+              body="Try a different search, or long-press the map."
+            />
           ) : (
             searchResults?.map((place, i) => (
               <Pressable
                 key={`${place.label}-${i}`}
-                style={{
-                  paddingVertical: 12,
-                  borderTopWidth: i === 0 ? 0 : 1,
-                  borderTopColor: colors.border,
-                }}
+                style={({ pressed }) => [
+                  localStyles.resultItem,
+                  i !== 0 && localStyles.resultItemBorder,
+                  pressed && { backgroundColor: colors.sunkenPressed },
+                ]}
                 onPress={() => onSelectPlace(place)}
               >
                 <Text style={styles.body}>{place.label}</Text>
@@ -176,21 +240,12 @@ function IdleCard({
               <Text style={styles.mutedText}>Recent</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: spacing.xs }}>
                 {recentPlaces.map((place, i) => (
-                  <Pressable
+                  <Chip
                     key={`${place.label}-${i}`}
-                    style={{
-                      backgroundColor: colors.bg,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      borderRadius: 999,
-                      paddingVertical: 10,
-                      paddingHorizontal: spacing.m,
-                      marginRight: spacing.s,
-                    }}
+                    label={place.label}
                     onPress={() => onSelectPlace(place)}
-                  >
-                    <Text style={styles.body}>{place.label}</Text>
-                  </Pressable>
+                    style={{ marginRight: spacing.s }}
+                  />
                 ))}
               </ScrollView>
             </View>
@@ -200,7 +255,11 @@ function IdleCard({
           </Text>
         </>
       )}
-      {error && <Text style={{ color: colors.danger, marginTop: spacing.s }}>{error}</Text>}
+      {error && (
+        <Banner kind="error" style={{ marginTop: spacing.s }}>
+          {error}
+        </Banner>
+      )}
     </View>
   );
 }
@@ -250,14 +309,14 @@ function PreviewCard({
         placeholder="Note for your driver (optional)"
         placeholderTextColor={colors.muted}
       />
-      {error && <Text style={{ color: colors.danger, marginTop: spacing.s }}>{error}</Text>}
+      {error && (
+        <Banner kind="error" style={{ marginTop: spacing.s }}>
+          {error}
+        </Banner>
+      )}
       <View style={{ flexDirection: 'row', marginTop: spacing.m, gap: spacing.s }}>
-        <Pressable style={[styles.buttonSecondary, { flex: 1 }]} onPress={onBack} disabled={submitting}>
-          <Text style={styles.buttonSecondaryText}>Back</Text>
-        </Pressable>
-        <Pressable style={[styles.button, { flex: 1 }]} onPress={onSubmit} disabled={submitting}>
-          <Text style={styles.buttonText}>{submitting ? 'Asking…' : 'Ask for a ride'}</Text>
-        </Pressable>
+        <Button label="Back" variant="secondary" onPress={onBack} disabled={submitting} style={{ flex: 1 }} />
+        <Button label="Ask for a ride" onPress={onSubmit} loading={submitting} style={{ flex: 1 }} />
       </View>
     </View>
   );
@@ -284,10 +343,18 @@ function WaitingCard({
       </Animated.View>
       <Text style={[styles.mutedText, { marginTop: spacing.xs }]}>Headed to {label}.</Text>
       <Text style={[styles.mutedText, { marginTop: 2 }]}>We'll let you know as soon as someone can take you.</Text>
-      {error && <Text style={{ color: colors.danger, marginTop: spacing.s }}>{error}</Text>}
-      <Pressable style={[styles.buttonSecondary, { marginTop: spacing.m }]} onPress={onCancel} disabled={submitting}>
-        <Text style={styles.buttonSecondaryText}>{submitting ? 'Cancelling…' : 'Cancel request'}</Text>
-      </Pressable>
+      {error && (
+        <Banner kind="error" style={{ marginTop: spacing.s }}>
+          {error}
+        </Banner>
+      )}
+      <Button
+        label="Cancel request"
+        variant="secondary"
+        onPress={onCancel}
+        loading={submitting}
+        style={{ marginTop: spacing.m }}
+      />
     </View>
   );
 }
@@ -315,7 +382,12 @@ function ActiveCard({
   const driverName = ride.driverName ?? 'Your driver';
   return (
     <View style={styles.card}>
-      <Text style={styles.h2}>🚗 {pickedUp ? `Riding with ${driverName}` : `${driverName} is on the way`}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <CarFront size={22} color={colors.accent} />
+        <Text style={[styles.h2, { marginLeft: spacing.s }]}>
+          {pickedUp ? `Riding with ${driverName}` : `${driverName} is on the way`}
+        </Text>
+      </View>
       {pickedUp ? (
         <Text style={[styles.mutedText, { marginTop: spacing.xs }]}>Heading to {destLabelFor(ride.destination)}.</Text>
       ) : !driverPos ? (
@@ -326,32 +398,33 @@ function ActiveCard({
           <Text style={[styles.mutedText, { marginLeft: spacing.s }]}>Working out their arrival…</Text>
         </View>
       ) : (
-        <Text style={[styles.mutedText, { marginTop: spacing.xs }]}>
+        <Text style={[localStyles.etaText, { marginTop: spacing.xs }]}>
           About {geo.formatDuration(etaRoute.durationSec)} · {geo.formatDistance(etaRoute.distanceMeters)} until pickup
         </Text>
       )}
       {pickedUp && etaRoute && (
-        <Text style={[styles.mutedText, { marginTop: 2 }]}>
+        <Text style={[localStyles.etaText, { marginTop: 2 }]}>
           About {geo.formatDuration(etaRoute.durationSec)} · {geo.formatDistance(etaRoute.distanceMeters)} to go
         </Text>
       )}
-      {error && <Text style={{ color: colors.danger, marginTop: spacing.s }}>{error}</Text>}
+      {error && (
+        <Banner kind="error" style={{ marginTop: spacing.s }}>
+          {error}
+        </Banner>
+      )}
       <View style={{ flexDirection: 'row', marginTop: spacing.m, gap: spacing.s }}>
         {pickedUp ? (
-          <Pressable style={[styles.button, { flex: 1 }]} onPress={onComplete} disabled={submitting}>
-            <Text style={styles.buttonText}>{submitting ? 'Please wait…' : "We've arrived"}</Text>
-          </Pressable>
+          <Button label="We've arrived" onPress={onComplete} loading={submitting} style={{ flex: 1 }} />
         ) : (
-          <Pressable style={[styles.buttonSecondary, { flex: 1 }]} onPress={onCancel} disabled={submitting}>
-            <Text style={styles.buttonSecondaryText}>{submitting ? 'Cancelling…' : 'Cancel'}</Text>
-          </Pressable>
+          <Button label="Cancel" variant="secondary" onPress={onCancel} loading={submitting} style={{ flex: 1 }} />
         )}
       </View>
       <Pressable
-        style={{ marginTop: spacing.m, alignItems: 'center', paddingVertical: spacing.xs }}
+        style={({ pressed }) => [localStyles.reportTrigger, pressed && { opacity: 0.6, transform: [{ translateY: 1 }] }]}
         onPress={onReport}
       >
-        <Text style={{ color: colors.danger, fontWeight: '600' }}>⚠️ Report a concern</Text>
+        <TriangleAlert size={18} color={colors.danger} />
+        <Text style={localStyles.reportTriggerText}>Report a concern</Text>
       </Pressable>
     </View>
   );
@@ -600,8 +673,18 @@ export default function RiderScreen() {
     pulseAnim.setValue(1);
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 0.4, duration: 900, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: motion.pulse,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: motion.pulse,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
       ])
     );
     loop.start();
@@ -801,12 +884,8 @@ export default function RiderScreen() {
         <Text style={[styles.body, { textAlign: 'center', marginTop: spacing.m }]}>
           Holy Roof Rides needs your location to find you a ride and show drivers where to pick you up.
         </Text>
-        <Pressable style={[styles.button, { marginTop: spacing.l }]} onPress={() => Linking.openSettings()}>
-          <Text style={styles.buttonText}>Open Settings</Text>
-        </Pressable>
-        <Pressable style={[styles.buttonSecondary, { marginTop: spacing.m }]} onPress={requestLocation}>
-          <Text style={styles.buttonSecondaryText}>Try Again</Text>
-        </Pressable>
+        <Button label="Open Settings" onPress={() => Linking.openSettings()} style={{ marginTop: spacing.l }} />
+        <Button label="Try Again" variant="secondary" onPress={requestLocation} style={{ marginTop: spacing.m }} />
       </View>
     );
   }
@@ -817,9 +896,7 @@ export default function RiderScreen() {
         {locError ? (
           <>
             <Text style={[styles.body, { textAlign: 'center' }]}>{locError}</Text>
-            <Pressable style={[styles.button, { marginTop: spacing.m }]} onPress={requestLocation}>
-              <Text style={styles.buttonText}>Try Again</Text>
-            </Pressable>
+            <Button label="Try Again" onPress={requestLocation} style={{ marginTop: spacing.m }} />
           </>
         ) : (
           <>
@@ -863,9 +940,9 @@ export default function RiderScreen() {
 
       <View style={{ padding: spacing.m }}>
         {notice && (
-          <View style={{ backgroundColor: '#FCEFD8', borderRadius: radius.s, padding: spacing.s, marginBottom: spacing.s }}>
-            <Text style={{ color: colors.primaryDark, textAlign: 'center' }}>{notice}</Text>
-          </View>
+          <Banner kind="notice" style={{ marginBottom: spacing.s }}>
+            {notice}
+          </Banner>
         )}
 
         {loadingRides ? (
@@ -919,7 +996,7 @@ export default function RiderScreen() {
       </View>
 
       <Modal visible={reportOpen} transparent animationType="fade" onRequestClose={() => setReportOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: spacing.l }}>
+        <View style={{ flex: 1, backgroundColor: colors.scrim, justifyContent: 'center', padding: spacing.l }}>
           <View style={styles.card}>
             <Text style={styles.h2}>Report a concern</Text>
             <Text style={[styles.mutedText, { marginTop: spacing.xs, marginBottom: spacing.s }]}>
@@ -933,22 +1010,24 @@ export default function RiderScreen() {
               placeholder="What happened?"
               placeholderTextColor={colors.muted}
             />
-            {reportError && <Text style={{ color: colors.danger, marginTop: spacing.s }}>{reportError}</Text>}
+            {reportError && (
+              <Banner kind="error" style={{ marginTop: spacing.s }}>
+                {reportError}
+              </Banner>
+            )}
             <View style={{ flexDirection: 'row', marginTop: spacing.m, gap: spacing.s }}>
-              <Pressable
-                style={[styles.buttonSecondary, { flex: 1 }]}
+              <Button
+                label="Cancel"
+                variant="secondary"
                 onPress={() => {
                   setReportOpen(false);
                   setReportText('');
                   setReportError(null);
                 }}
                 disabled={reportSubmitting}
-              >
-                <Text style={styles.buttonSecondaryText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={[styles.button, { flex: 1 }]} onPress={submitReport} disabled={reportSubmitting}>
-                <Text style={styles.buttonText}>{reportSubmitting ? 'Sending…' : 'Send report'}</Text>
-              </Pressable>
+                style={{ flex: 1 }}
+              />
+              <Button label="Send report" onPress={submitReport} loading={reportSubmitting} style={{ flex: 1 }} />
             </View>
           </View>
         </View>

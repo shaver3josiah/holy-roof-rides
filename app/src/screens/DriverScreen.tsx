@@ -33,18 +33,21 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { HandHeart, MapPin, Navigation, TriangleAlert } from 'lucide-react-native';
 import { useSession } from '../../App';
 import * as api from '../api';
 import { ApiError } from '../api';
 import * as geo from '../geo';
 import type { RouteInfo } from '../geo';
 import OsmMap, { type OsmMapProps } from '../components/OsmMap';
-import { colors, spacing, styles } from '../theme';
+import { Banner, Button, EmptyState } from '../components/ui';
+import { colors, fonts, spacing, styles, type } from '../theme';
 import type { LatLng, LiveMessage, Ride } from '../types';
 
 function friendlyError(err: unknown): string {
@@ -97,33 +100,6 @@ function useDestinationLabel(ride: Ride, cache: React.MutableRefObject<Map<numbe
   return label ?? 'Looking up destination…';
 }
 
-function ErrorBanner({ message }: { message: string }) {
-  return (
-    <View
-      style={{
-        backgroundColor: '#FBEAE5',
-        borderRadius: 12,
-        padding: spacing.m,
-        marginHorizontal: spacing.m,
-        marginTop: spacing.s,
-      }}
-    >
-      <Text style={{ color: colors.danger, fontSize: 14 }}>{message}</Text>
-    </View>
-  );
-}
-
-function EmptyState() {
-  return (
-    <View style={{ padding: spacing.l, alignItems: 'center' }}>
-      <Text style={[styles.h2, { textAlign: 'center' }]}>No one needs a ride right now 🙌</Text>
-      <Text style={[styles.mutedText, { textAlign: 'center', marginTop: spacing.xs }]}>
-        Pull down to check again.
-      </Text>
-    </View>
-  );
-}
-
 function RideCard({
   ride,
   distance,
@@ -141,16 +117,13 @@ function RideCard({
   return (
     <View style={[styles.card, { marginHorizontal: spacing.m, marginBottom: spacing.s }]}>
       <Text style={styles.h2}>{ride.riderName}</Text>
-      {distance != null && <Text style={[styles.mutedText, { marginTop: 2 }]}>{distance.toFixed(1)} mi away</Text>}
-      <Text style={[styles.body, { marginTop: spacing.s }]}>To {destLabel}</Text>
-      {ride.note ? <Text style={[styles.mutedText, { marginTop: spacing.xs }]}>“{ride.note}”</Text> : null}
-      <Pressable
-        style={[styles.button, { marginTop: spacing.m, opacity: busy ? 0.6 : 1 }]}
-        onPress={onAccept}
-        disabled={busy}
-      >
-        <Text style={styles.buttonText}>{busy ? 'Accepting…' : 'Accept this ride'}</Text>
-      </Pressable>
+      {distance != null && <Text style={[local.metaText, { marginTop: 2 }]}>{distance.toFixed(1)} mi away</Text>}
+      <View style={local.destRow}>
+        <MapPin size={15} color={colors.primary} />
+        <Text style={styles.body}>To {destLabel}</Text>
+      </View>
+      {ride.note ? <Text style={[local.quoteText, { marginTop: spacing.xs }]}>“{ride.note}”</Text> : null}
+      <Button label="Accept this ride" onPress={onAccept} loading={busy} disabled={busy} style={{ marginTop: spacing.m }} />
     </View>
   );
 }
@@ -201,37 +174,40 @@ function ActiveRide({
       <View style={[styles.card, { margin: spacing.m }]}>
         <Text style={styles.h2}>{toPickup ? `Picking up ${ride.riderName}` : `Driving ${ride.riderName} to ${destLabel}`}</Text>
         {route ? (
-          <Text style={[styles.mutedText, { marginTop: 2 }]}>
+          <Text style={[local.metaText, { marginTop: 2 }]}>
             {geo.formatDistance(route.distanceMeters)} · {geo.formatDuration(route.durationSec)}
           </Text>
         ) : location ? (
-          <Text style={[styles.mutedText, { marginTop: 2 }]}>Finding the route…</Text>
+          <Text style={[local.metaText, { marginTop: 2 }]}>Finding the route…</Text>
         ) : null}
-        {toPickup && ride.note ? <Text style={[styles.body, { marginTop: spacing.s }]}>“{ride.note}”</Text> : null}
+        {toPickup && ride.note ? <Text style={[local.quoteText, { marginTop: spacing.s }]}>“{ride.note}”</Text> : null}
 
-        <Pressable style={[styles.buttonSecondary, { marginTop: spacing.m }]} onPress={onNavigate}>
-          <Text style={styles.buttonSecondaryText}>🧭 Navigate</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.button, { marginTop: spacing.s, opacity: busy ? 0.6 : 1 }]}
+        <Button
+          label="Navigate"
+          icon={Navigation}
+          variant="secondary"
+          onPress={onNavigate}
+          style={{ marginTop: spacing.m }}
+        />
+
+        <Button
+          label={toPickup ? `${ride.riderName} is in the car` : 'Complete ride'}
           onPress={onPrimary}
+          loading={busy}
           disabled={busy}
-        >
-          <Text style={styles.buttonText}>
-            {busy ? 'Please wait…' : toPickup ? `${ride.riderName} is in the car` : 'Complete ride'}
-          </Text>
-        </Pressable>
+          style={{ marginTop: spacing.s }}
+        />
+
         {toPickup && (
-          <Pressable
-            style={{ marginTop: spacing.m, alignItems: 'center' }}
-            onPress={onCancel}
-            disabled={busy}
-          >
-            <Text style={{ color: colors.muted, fontWeight: '600' }}>Cancel</Text>
-          </Pressable>
+          <Button label="Cancel" variant="secondary" onPress={onCancel} disabled={busy} style={{ marginTop: spacing.m }} />
         )}
-        <Pressable style={{ marginTop: spacing.s, alignItems: 'center' }} onPress={onReport}>
-          <Text style={{ color: colors.danger, fontWeight: '600' }}>⚠️ Report a concern</Text>
+
+        <Pressable
+          style={({ pressed }) => [local.reportRow, pressed && local.reportPressed]}
+          onPress={onReport}
+        >
+          <TriangleAlert size={18} color={colors.danger} />
+          <Text style={local.reportText}>Report a concern</Text>
         </Pressable>
       </View>
     </View>
@@ -257,7 +233,7 @@ function ReportModal({
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: spacing.l }}>
+      <View style={{ flex: 1, backgroundColor: colors.scrim, justifyContent: 'center', padding: spacing.l }}>
         <View style={[styles.card, { padding: spacing.l }]}>
           <Text style={styles.h2}>Report a concern</Text>
           <Text style={[styles.mutedText, { marginTop: spacing.xs, marginBottom: spacing.m }]}>
@@ -271,18 +247,14 @@ function ReportModal({
             placeholder="What happened?"
             placeholderTextColor={colors.muted}
           />
-          {error && <Text style={{ color: colors.danger, marginTop: spacing.s }}>{error}</Text>}
+          {error && (
+            <Banner kind="error" style={{ marginTop: spacing.s }}>
+              {error}
+            </Banner>
+          )}
           <View style={{ flexDirection: 'row', gap: spacing.s, marginTop: spacing.m }}>
-            <Pressable style={[styles.buttonSecondary, { flex: 1 }]} onPress={onCancel} disabled={busy}>
-              <Text style={styles.buttonSecondaryText}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.button, { flex: 1, opacity: busy ? 0.6 : 1 }]}
-              onPress={onSubmit}
-              disabled={busy}
-            >
-              <Text style={styles.buttonText}>{busy ? 'Sending…' : 'Send report'}</Text>
-            </Pressable>
+            <Button label="Cancel" variant="secondary" onPress={onCancel} disabled={busy} style={{ flex: 1 }} />
+            <Button label="Send report" onPress={onSubmit} loading={busy} disabled={busy} style={{ flex: 1 }} />
           </View>
         </View>
       </View>
@@ -588,7 +560,11 @@ export default function DriverScreen() {
 
   return (
     <View style={styles.screen}>
-      {error && <ErrorBanner message={error} />}
+      {error && (
+        <Banner kind="error" style={{ marginHorizontal: spacing.m, marginTop: spacing.s }}>
+          {error}
+        </Banner>
+      )}
       {myRide ? (
         <ActiveRide
           ride={myRide}
@@ -609,7 +585,9 @@ export default function DriverScreen() {
           keyExtractor={(r) => String(r.id)}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           contentContainerStyle={{ paddingVertical: spacing.m, flexGrow: 1 }}
-          ListEmptyComponent={<EmptyState />}
+          ListEmptyComponent={
+            <EmptyState icon={HandHeart} title="No one needs a ride right now 🙌" body="Pull down to check again." />
+          }
           renderItem={({ item }) => (
             <RideCard
               ride={item}
@@ -633,3 +611,41 @@ export default function DriverScreen() {
     </View>
   );
 }
+
+const local = StyleSheet.create({
+  metaText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: type.sm,
+    color: colors.muted,
+  },
+  quoteText: {
+    fontFamily: fonts.sans,
+    fontSize: type.sm,
+    color: colors.muted,
+    fontStyle: 'italic',
+  },
+  destRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.s,
+  },
+  reportRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.s,
+    paddingVertical: spacing.s,
+    minHeight: 44,
+  },
+  reportPressed: {
+    opacity: 0.6,
+    transform: [{ translateY: 1 }],
+  },
+  reportText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: type.sm,
+    color: colors.danger,
+  },
+});

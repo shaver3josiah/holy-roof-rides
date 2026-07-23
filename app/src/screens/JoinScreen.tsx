@@ -15,22 +15,25 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { CarFront, HandHeart, ShieldCheck } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { useSession } from '../../App';
 import * as api from '../api';
 import { ApiError } from '../api';
 import { saveAuth } from '../store';
-import { colors, radius, spacing, styles } from '../theme';
+import { Banner, Button } from '../components/ui';
+import LogoCoin from '../components/LogoCoin';
+import { colors, fonts, spacing, styles, type } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Join'>;
 
 const PIN_RE = /^\d{4,8}$/;
 
-const BENEFITS: Array<{ emoji: string; text: string }> = [
-  { emoji: '🙋', text: 'Ask for a ride' },
-  { emoji: '🚗', text: 'Give a ride' },
-  { emoji: '✅', text: 'Approved by your deacons' },
+const BENEFITS: Array<{ Icon: typeof HandHeart; text: string }> = [
+  { Icon: HandHeart, text: 'Ask for a ride' },
+  { Icon: CarFront, text: 'Give a ride' },
+  { Icon: ShieldCheck, text: 'Approved by your deacons' },
 ];
 
 function Field(props: {
@@ -40,16 +43,17 @@ function Field(props: {
   keyboardType?: 'default' | 'phone-pad' | 'numeric';
   secureTextEntry?: boolean;
   maxLength?: number;
-  autoCapitalize?: 'none' | 'words';
+  autoCapitalize?: 'none' | 'words' | 'characters';
   placeholder?: string;
   helper?: string;
+  tracked?: boolean;
   last?: boolean;
 }) {
   return (
     <View style={{ marginBottom: props.last ? 0 : spacing.m }}>
-      <Text style={[styles.mutedText, { marginBottom: spacing.xs, fontWeight: '600' }]}>{props.label}</Text>
+      <Text style={fieldLabel}>{props.label}</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, props.tracked && trackedInput]}
         value={props.value}
         onChangeText={props.onChangeText}
         keyboardType={props.keyboardType ?? 'default'}
@@ -59,9 +63,7 @@ function Field(props: {
         placeholder={props.placeholder}
         placeholderTextColor={colors.muted}
       />
-      {props.helper && (
-        <Text style={[styles.mutedText, { marginTop: spacing.xs, fontSize: 13 }]}>{props.helper}</Text>
-      )}
+      {props.helper && <Text style={[styles.helperText, { marginTop: spacing.xs }]}>{props.helper}</Text>}
     </View>
   );
 }
@@ -122,14 +124,9 @@ export default function JoinScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ alignItems: 'center', marginBottom: spacing.l }}>
-          <Text style={{ fontSize: 44 }}>⛪🚗</Text>
-          <Text style={[styles.h1, { marginTop: spacing.xs, textAlign: 'center' }]}>Holy Roof Rides</Text>
-          <Text
-            style={[
-              styles.body,
-              { color: colors.muted, textAlign: 'center', marginTop: spacing.xs },
-            ]}
-          >
+          <LogoCoin size={96} />
+          <Text style={[styles.h1, { marginTop: spacing.s, textAlign: 'center' }]}>Welcome 👋</Text>
+          <Text style={[styles.body, { color: colors.muted, textAlign: 'center', marginTop: spacing.xs }]}>
             Rides to church, from people you already trust.
           </Text>
         </View>
@@ -144,7 +141,19 @@ export default function JoinScreen({ navigation }: Props) {
                 marginBottom: i === BENEFITS.length - 1 ? 0 : spacing.s,
               }}
             >
-              <Text style={{ fontSize: 20, width: 32 }}>{b.emoji}</Text>
+              <View
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  backgroundColor: colors.noticeSurface,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: spacing.s,
+                }}
+              >
+                <b.Icon size={19} color={colors.accentPressed} />
+              </View>
               <Text style={styles.body}>{b.text}</Text>
             </View>
           ))}
@@ -156,7 +165,9 @@ export default function JoinScreen({ navigation }: Props) {
             value={inviteCode}
             onChangeText={setInviteCode}
             placeholder="ABC123"
+            autoCapitalize="characters"
             helper="Ask a deacon for this if you don't have one yet."
+            tracked
             last
           />
         </SectionCard>
@@ -180,6 +191,7 @@ export default function JoinScreen({ navigation }: Props) {
             maxLength={8}
             placeholder="••••"
             helper="You'll use this to sign in — like a debit card PIN."
+            tracked
           />
           <Field
             label="Confirm PIN"
@@ -189,34 +201,43 @@ export default function JoinScreen({ navigation }: Props) {
             secureTextEntry
             maxLength={8}
             placeholder="••••"
+            tracked
             last
           />
         </SectionCard>
 
         {error && (
-          <View
-            style={{
-              backgroundColor: 'rgba(179,70,46,0.08)',
-              borderRadius: radius.s,
-              padding: spacing.m,
-              marginBottom: spacing.m,
-            }}
-          >
-            <Text style={[styles.body, { color: colors.danger }]}>{error}</Text>
-          </View>
+          <Banner kind="error" style={{ marginBottom: spacing.m }}>
+            {error}
+          </Banner>
         )}
 
-        <Pressable style={styles.button} onPress={submit} disabled={loading}>
-          <Text style={styles.buttonText}>{loading ? 'Joining…' : 'Join'}</Text>
-        </Pressable>
+        <Button label="Join" onPress={submit} loading={loading} disabled={loading} />
 
         <Pressable
-          style={{ marginTop: spacing.l, alignItems: 'center', paddingVertical: spacing.s }}
+          style={({ pressed }) => [
+            { marginTop: spacing.l, alignItems: 'center', paddingVertical: spacing.s },
+            { opacity: pressed ? 0.6 : 1, transform: [{ translateY: pressed ? 1 : 0 }] },
+          ]}
           onPress={() => navigation.navigate('PinLogin')}
         >
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>Already a member? Log in</Text>
+          <Text style={{ fontFamily: fonts.sansSemiBold, fontSize: type.base, color: colors.primary }}>
+            Already a member? Log in
+          </Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+
+const fieldLabel = {
+  fontFamily: fonts.sansSemiBold,
+  fontSize: type.s,
+  color: colors.muted,
+  marginBottom: spacing.xs,
+} as const;
+
+const trackedInput = {
+  fontFamily: fonts.mono,
+  letterSpacing: 3,
+} as const;

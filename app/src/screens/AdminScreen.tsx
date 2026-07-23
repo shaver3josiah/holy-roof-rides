@@ -12,14 +12,16 @@
 // anyway: if !session.user.isDeacon, render nothing.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
+import { Church as ChurchIcon, Phone, Share2, ShieldCheck, TriangleAlert, UserCheck, UsersRound } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { useSession } from '../../App';
 import * as api from '../api';
 import { ApiError } from '../api';
 import OsmMap from '../components/OsmMap';
+import { Badge, Banner, Button, EmptyState, InviteCodeDisplay } from '../components/ui';
 import * as geo from '../geo';
-import { colors, spacing, styles } from '../theme';
+import { colors, fonts, palette, radius, spacing, styles, type } from '../theme';
 import type { Church, Invite, Member, Place, SafetyReport } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Admin'>;
@@ -45,7 +47,7 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
       style={{
         flexDirection: 'row',
         backgroundColor: colors.border,
-        borderRadius: 999,
+        borderRadius: radius.pill,
         padding: 3,
         marginHorizontal: spacing.m,
         marginVertical: spacing.s,
@@ -59,76 +61,26 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
           accessibilityState={{ selected: active === t.key }}
           style={{
             flex: 1,
+            minHeight: 44,
             paddingVertical: 10,
-            borderRadius: 999,
+            borderRadius: radius.pill,
             alignItems: 'center',
+            justifyContent: 'center',
             backgroundColor: active === t.key ? colors.primary : 'transparent',
           }}
         >
-          <Text style={{ fontWeight: '600', fontSize: 13, color: active === t.key ? '#fff' : colors.muted }}>
+          <Text
+            style={{
+              fontFamily: fonts.sansSemiBold,
+              fontSize: type.s,
+              color: active === t.key ? palette.white : colors.text,
+            }}
+          >
             {t.label}
           </Text>
         </Pressable>
       ))}
     </View>
-  );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return (
-    <View style={{ padding: spacing.l, alignItems: 'center' }}>
-      <Text style={[styles.mutedText, { textAlign: 'center' }]}>{text}</Text>
-    </View>
-  );
-}
-
-function ErrorBanner({ message }: { message: string }) {
-  return (
-    <View
-      style={{
-        backgroundColor: '#FBEAE5',
-        borderRadius: 12,
-        padding: spacing.m,
-        marginHorizontal: spacing.m,
-        marginBottom: spacing.s,
-      }}
-    >
-      <Text style={{ color: colors.danger, fontSize: 14 }}>{message}</Text>
-    </View>
-  );
-}
-
-function ActionButton({
-  label,
-  onPress,
-  kind = 'primary',
-  disabled,
-}: {
-  label: string;
-  onPress: () => void;
-  kind?: 'primary' | 'secondary' | 'danger';
-  disabled?: boolean;
-}) {
-  const bg = kind === 'primary' ? colors.primary : kind === 'danger' ? colors.danger : 'transparent';
-  const border = kind === 'secondary' ? colors.primary : bg;
-  const textColor = kind === 'secondary' ? colors.primary : '#fff';
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={{
-        flex: 1,
-        backgroundColor: kind === 'secondary' ? 'transparent' : bg,
-        borderWidth: 1,
-        borderColor: border,
-        borderRadius: 10,
-        paddingVertical: 12,
-        alignItems: 'center',
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      <Text style={{ color: textColor, fontWeight: '600', fontSize: 15 }}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -179,17 +131,24 @@ function ApprovalsTab({ token }: { token: string }) {
 
   return (
     <View>
-      {error && <ErrorBanner message={error} />}
-      {users && users.length === 0 && <EmptyState text="No one is waiting on approval right now." />}
+      {error && <Banner kind="error" style={{ marginHorizontal: spacing.m, marginBottom: spacing.s }}>{error}</Banner>}
+      {users && users.length === 0 && (
+        <EmptyState
+          icon={UserCheck}
+          title="No one is waiting on approval right now."
+          style={{ marginHorizontal: spacing.m }}
+        />
+      )}
       {users?.map((u) => (
         <View key={u.id} style={[styles.card, { marginHorizontal: spacing.m, marginBottom: spacing.s }]}>
           <Text style={styles.h2}>{u.name}</Text>
           <Text style={[styles.mutedText, { marginTop: 2, marginBottom: spacing.m }]}>{u.phone}</Text>
           <View style={{ flexDirection: 'row', gap: spacing.s }}>
-            <ActionButton label="Approve" onPress={() => act(u.id, 'approve')} disabled={busyId === u.id} />
-            <ActionButton
+            <Button label="Approve" style={{ flex: 1 }} onPress={() => act(u.id, 'approve')} disabled={busyId === u.id} />
+            <Button
               label="Reject"
-              kind="danger"
+              variant="danger"
+              style={{ flex: 1 }}
               onPress={() => act(u.id, 'reject')}
               disabled={busyId === u.id}
             />
@@ -248,14 +207,23 @@ function ReportsTab({ token }: { token: string }) {
 
   return (
     <View>
-      {error && <ErrorBanner message={error} />}
-      {reports && reports.length === 0 && <EmptyState text="No safety reports have been filed. That's good news." />}
+      {error && <Banner kind="error" style={{ marginHorizontal: spacing.m, marginBottom: spacing.s }}>{error}</Banner>}
+      {reports && reports.length === 0 && (
+        <EmptyState
+          icon={ShieldCheck}
+          title="No safety reports have been filed. That's good news."
+          style={{ marginHorizontal: spacing.m }}
+        />
+      )}
       {open.map((r) => (
         <View key={r.id} style={[styles.card, { marginHorizontal: spacing.m, marginBottom: spacing.s }]}>
-          <Text style={styles.h2}>{r.subjectName ?? 'General concern'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <TriangleAlert size={16} color={colors.danger} />
+            <Text style={styles.h2}>{r.subjectName ?? 'General concern'}</Text>
+          </View>
           <Text style={[styles.mutedText, { marginTop: 2 }]}>Reported by {r.reporterName}</Text>
           <Text style={[styles.body, { marginTop: spacing.s, marginBottom: spacing.m }]}>{r.description}</Text>
-          <ActionButton label="Mark resolved" onPress={() => resolve(r.id)} disabled={busyId === r.id} />
+          <Button label="Mark resolved" variant="secondary" onPress={() => resolve(r.id)} disabled={busyId === r.id} />
         </View>
       ))}
       {resolved.length > 0 && (
@@ -330,35 +298,28 @@ function MembersTab({ token }: { token: string }) {
 
   return (
     <View>
-      {error && <ErrorBanner message={error} />}
-      {members && members.length === 0 && <EmptyState text="No members yet." />}
+      {error && <Banner kind="error" style={{ marginHorizontal: spacing.m, marginBottom: spacing.s }}>{error}</Banner>}
+      {members && members.length === 0 && (
+        <EmptyState icon={UsersRound} title="No members yet." style={{ marginHorizontal: spacing.m }} />
+      )}
       {members?.map((m) => (
         <View key={m.id} style={[styles.card, { marginHorizontal: spacing.m, marginBottom: spacing.s }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={[styles.h2, { flex: 1 }]}>{m.name}</Text>
-            {m.isDeacon && (
-              <View
-                style={{
-                  backgroundColor: colors.accent,
-                  borderRadius: 999,
-                  paddingHorizontal: spacing.s,
-                  paddingVertical: 3,
-                }}
-              >
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>DEACON</Text>
-              </View>
-            )}
+            {m.isDeacon && <Badge label="DEACON" />}
           </View>
-          <Pressable onPress={() => call(m.phone)} style={{ marginTop: 4, marginBottom: spacing.m }}>
-            <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>📞 {m.phone}</Text>
+          <Pressable
+            onPress={() => call(m.phone)}
+            style={({ pressed }) => [
+              { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 4, marginBottom: spacing.m },
+              pressed ? { opacity: 0.6 } : null,
+            ]}
+          >
+            <Phone size={16} color={colors.primary} />
+            <Text style={{ fontFamily: fonts.sansSemiBold, fontSize: type.base, color: colors.primary }}>{m.phone}</Text>
           </Pressable>
           {!m.isDeacon && (
-            <ActionButton
-              label="Make deacon"
-              kind="secondary"
-              onPress={() => makeDeacon(m.id)}
-              disabled={busyId === m.id}
-            />
+            <Button label="Make deacon" variant="secondary" onPress={() => makeDeacon(m.id)} disabled={busyId === m.id} />
           )}
         </View>
       ))}
@@ -423,7 +384,9 @@ function InvitesTab({ token }: { token: string }) {
   );
 
   const share = useCallback((code: string) => {
-    Share.share({ message: `Join Holy Roof Rides! Use invite code: ${code}` }).catch(() => {});
+    Share.share({ message: `Join Holy Roof Rides! Use invite code: ${code}` }).catch(() => {
+      // ponytail: share sheet dismissed/unavailable — no follow-up needed
+    });
   }, []);
 
   if (!invites && !error) {
@@ -432,25 +395,19 @@ function InvitesTab({ token }: { token: string }) {
 
   return (
     <View>
-      {error && <ErrorBanner message={error} />}
+      {error && <Banner kind="error" style={{ marginHorizontal: spacing.m, marginBottom: spacing.s }}>{error}</Banner>}
       <View style={{ marginHorizontal: spacing.m, marginBottom: spacing.m }}>
-        <ActionButton label={creating ? 'Creating…' : '+ New invite code'} onPress={create} disabled={creating} />
+        <Button label={creating ? 'Creating…' : '+ New invite code'} onPress={create} disabled={creating} loading={creating} />
       </View>
-      {invites && invites.length === 0 && <EmptyState text="No invite codes yet. Create one to bring in new members." />}
+      {invites && invites.length === 0 && (
+        <EmptyState
+          title="No invite codes yet. Create one to bring in new members."
+          style={{ marginHorizontal: spacing.m }}
+        />
+      )}
       {invites?.map((inv) => (
         <View key={inv.code} style={[styles.card, { marginHorizontal: spacing.m, marginBottom: spacing.s }]}>
-          <Text
-            style={{
-              fontSize: 32,
-              fontWeight: '800',
-              letterSpacing: 2,
-              color: colors.primaryDark,
-              textAlign: 'center',
-              marginBottom: spacing.s,
-            }}
-          >
-            {inv.code}
-          </Text>
+          <InviteCodeDisplay code={inv.code} style={{ marginBottom: spacing.s }} />
           <Text style={[styles.mutedText, { textAlign: 'center', marginBottom: spacing.m }]}>
             {inv.revoked
               ? 'Revoked'
@@ -459,10 +416,18 @@ function InvitesTab({ token }: { token: string }) {
                 }`}
           </Text>
           <View style={{ flexDirection: 'row', gap: spacing.s }}>
-            <ActionButton label="Share" kind="secondary" onPress={() => share(inv.code)} disabled={inv.revoked} />
-            <ActionButton
+            <Button
+              label="Share"
+              icon={Share2}
+              variant="secondary"
+              style={{ flex: 1 }}
+              onPress={() => share(inv.code)}
+              disabled={inv.revoked}
+            />
+            <Button
               label="Revoke"
-              kind="danger"
+              variant="danger"
+              style={{ flex: 1 }}
               onPress={() => revoke(inv.code)}
               disabled={inv.revoked || busyCode === inv.code}
             />
@@ -546,7 +511,7 @@ function ChurchEditForm({
 
   return (
     <View style={[styles.card, { marginHorizontal: spacing.m, marginBottom: spacing.m }]}>
-      {error && <ErrorBanner message={error} />}
+      {error && <Banner kind="error" style={{ marginBottom: spacing.s }}>{error}</Banner>}
       <Text style={[styles.mutedText, { marginBottom: 4 }]}>Church name</Text>
       <TextInput
         value={name}
@@ -569,7 +534,7 @@ function ChurchEditForm({
           style={{
             borderWidth: 1,
             borderColor: colors.border,
-            borderRadius: 10,
+            borderRadius: radius.m,
             marginBottom: spacing.m,
             overflow: 'hidden',
           }}
@@ -578,12 +543,15 @@ function ChurchEditForm({
             <Pressable
               key={`${r.lat},${r.lng},${i}`}
               onPress={() => pick(r)}
-              style={{
-                paddingVertical: 12,
-                paddingHorizontal: spacing.m,
-                borderTopWidth: i === 0 ? 0 : 1,
-                borderTopColor: colors.border,
-              }}
+              style={({ pressed }) => [
+                {
+                  paddingVertical: 12,
+                  paddingHorizontal: spacing.m,
+                  borderTopWidth: i === 0 ? 0 : 1,
+                  borderTopColor: colors.border,
+                },
+                pressed ? { backgroundColor: colors.sunkenPressed } : null,
+              ]}
             >
               <Text style={styles.body}>{r.label}</Text>
             </Pressable>
@@ -591,7 +559,7 @@ function ChurchEditForm({
         </View>
       )}
       {selected && (
-        <View style={{ height: 160, borderRadius: 12, overflow: 'hidden', marginBottom: spacing.m }}>
+        <View style={{ height: 160, borderRadius: radius.m, overflow: 'hidden', marginBottom: spacing.m }}>
           <OsmMap
             center={{ lat: selected.lat, lng: selected.lng }}
             markers={[
@@ -606,8 +574,8 @@ function ChurchEditForm({
         </View>
       )}
       <View style={{ flexDirection: 'row', gap: spacing.s }}>
-        <ActionButton label="Cancel" kind="secondary" onPress={onCancel} disabled={saving} />
-        <ActionButton label={saving ? 'Saving…' : 'Save'} onPress={save} disabled={!canSave} />
+        <Button label="Cancel" variant="secondary" style={{ flex: 1 }} onPress={onCancel} disabled={saving} />
+        <Button label={saving ? 'Saving…' : 'Save'} style={{ flex: 1 }} onPress={save} disabled={!canSave} loading={saving} />
       </View>
     </View>
   );
@@ -651,32 +619,24 @@ function ChurchTab({ token }: { token: string }) {
 
   return (
     <View>
-      {error && <ErrorBanner message={error} />}
-      <Text style={[styles.mutedText, { marginHorizontal: spacing.m, marginBottom: spacing.m }]}>
+      {error && <Banner kind="error" style={{ marginHorizontal: spacing.m, marginBottom: spacing.s }}>{error}</Banner>}
+      <Banner kind="info" style={{ marginHorizontal: spacing.m, marginBottom: spacing.m }}>
         Members get a one-tap "Take me to Church" button.
-      </Text>
+      </Banner>
       {editing ? (
         <ChurchEditForm token={token} initial={church ?? null} onCancel={() => setEditing(false)} onSaved={handleSaved} />
       ) : (
         <>
           {success && (
-            <View
-              style={{
-                backgroundColor: '#E7F3EA',
-                borderRadius: 12,
-                padding: spacing.m,
-                marginHorizontal: spacing.m,
-                marginBottom: spacing.s,
-              }}
-            >
-              <Text style={{ color: colors.success, fontSize: 14 }}>Saved. Members will see the new location.</Text>
-            </View>
+            <Banner kind="success" style={{ marginHorizontal: spacing.m, marginBottom: spacing.s }}>
+              Saved. Members will see the new location.
+            </Banner>
           )}
           {church ? (
             <View style={[styles.card, { marginHorizontal: spacing.m, marginBottom: spacing.m }]}>
               <Text style={styles.h2}>{church.name}</Text>
               <Text style={[styles.mutedText, { marginTop: 2, marginBottom: spacing.m }]}>{church.address}</Text>
-              <View style={{ height: 160, borderRadius: 12, overflow: 'hidden', marginBottom: spacing.m }}>
+              <View style={{ height: 160, borderRadius: radius.m, overflow: 'hidden', marginBottom: spacing.m }}>
                 <OsmMap
                   center={{ lat: church.lat, lng: church.lng }}
                   markers={[
@@ -684,12 +644,16 @@ function ChurchTab({ token }: { token: string }) {
                   ]}
                 />
               </View>
-              <ActionButton label="Set / change" kind="secondary" onPress={startEditing} />
+              <Button label="Set / change" variant="secondary" onPress={startEditing} />
             </View>
           ) : (
             <View style={{ marginHorizontal: spacing.m }}>
-              <EmptyState text="No home location set yet. Members won't see a 'Take me to Church' button until you add one." />
-              <ActionButton label="Set church location" onPress={startEditing} />
+              <EmptyState
+                icon={ChurchIcon}
+                title={`No home location set yet. Members won't see a "Take me to Church" button until you add one.`}
+                style={{ marginBottom: spacing.m }}
+              />
+              <Button label="Set church location" onPress={startEditing} />
             </View>
           )}
         </>

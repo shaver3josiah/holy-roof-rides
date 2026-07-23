@@ -1,0 +1,84 @@
+// The "epic coin" brand mark (docs/DESIGN.md "Brand story"). Source of truth
+// for the artwork is app/assets/logo-coin.svg; it's inlined here as a string
+// because the project has no SVG-to-component build step (no
+// react-native-svg-transformer), so SvgXml is the only way to render a raw
+// .svg file with the already-installed react-native-svg. Keep this in sync
+// with the asset file if the artwork changes.
+import React from 'react';
+import { SvgXml } from 'react-native-svg';
+
+const xml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="Holey Lift — four pairs of hands lifting a flying carpet by a rope, on a navy coin bordered by a gold Greek meander">
+<defs>
+
+<radialGradient id="hlFace" cx="50%" cy="42%" r="65%">
+<stop offset="0%" stop-color="#2E3A59"></stop><stop offset="100%" stop-color="#1F2A44"></stop>
+</radialGradient>
+<linearGradient id="hlRim" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#E4BA6B"></stop><stop offset="50%" stop-color="#D9A441"></stop><stop offset="100%" stop-color="#A97A2E"></stop>
+</linearGradient>
+<radialGradient id="hlInner" cx="50%" cy="44%" r="60%">
+<stop offset="0%" stop-color="#28324D"></stop><stop offset="100%" stop-color="#1B2439"></stop>
+</radialGradient>
+<path id="hlKey" d="M-9,7 L-9,-5 L7,-5 L7,6 L-1,6 L-1,0 L3,0" fill="none" stroke="#D9A441" stroke-width="2.3" stroke-linecap="square" stroke-linejoin="miter" opacity="0.9"></path>
+<polygon id="hlRay" points="200,200 197,76 203,76" fill="#D9A441" opacity="0.15"></polygon>
+
+<g id="hlHand">
+<path d="M-11,26 Q-12,6 -9,-2 L-9,-10 Q-9,-14 -5,-14 Q-1,-14 -1,-10 L-1,-4 L1,-4 L1,-13 Q1,-17 5,-17 Q9,-17 9,-13 L9,-3 L11,-3 L11,-11 Q11,-15 15,-15 Q19,-15 19,-11 L19,-1 L21,-1 L21,-8 Q21,-12 25,-12 Q29,-12 29,-8 L29,6 Q29,20 20,27 L-2,27 Q-11,27 -11,26 Z" transform="translate(-9,0)"></path>
+</g>
+<path id="hlTopArc" d="M33,200 A167,167 0 0 1 367,200" fill="none"></path>
+<path id="hlBotArc" d="M27,200 A173,173 0 0 0 373,200" fill="none"></path>
+</defs>
+
+
+<circle cx="200" cy="200" r="196" fill="url(#hlRim)"></circle>
+<circle cx="200" cy="200" r="186" fill="url(#hlFace)"></circle>
+<circle cx="200" cy="200" r="186" fill="none" stroke="#D9A441" stroke-width="1.5" opacity="0.55"></circle>
+
+
+<g>
+<use href="#hlRay" transform="rotate(0 200 200)"></use><use href="#hlRay" transform="rotate(15 200 200)"></use><use href="#hlRay" transform="rotate(30 200 200)"></use><use href="#hlRay" transform="rotate(45 200 200)"></use><use href="#hlRay" transform="rotate(60 200 200)"></use><use href="#hlRay" transform="rotate(75 200 200)"></use><use href="#hlRay" transform="rotate(90 200 200)"></use><use href="#hlRay" transform="rotate(105 200 200)"></use><use href="#hlRay" transform="rotate(120 200 200)"></use><use href="#hlRay" transform="rotate(135 200 200)"></use><use href="#hlRay" transform="rotate(150 200 200)"></use><use href="#hlRay" transform="rotate(165 200 200)"></use><use href="#hlRay" transform="rotate(180 200 200)"></use><use href="#hlRay" transform="rotate(195 200 200)"></use><use href="#hlRay" transform="rotate(210 200 200)"></use><use href="#hlRay" transform="rotate(225 200 200)"></use><use href="#hlRay" transform="rotate(240 200 200)"></use><use href="#hlRay" transform="rotate(255 200 200)"></use><use href="#hlRay" transform="rotate(270 200 200)"></use><use href="#hlRay" transform="rotate(285 200 200)"></use><use href="#hlRay" transform="rotate(300 200 200)"></use><use href="#hlRay" transform="rotate(315 200 200)"></use><use href="#hlRay" transform="rotate(330 200 200)"></use><use href="#hlRay" transform="rotate(345 200 200)"></use>
+</g>
+
+
+<g>
+<use href="#hlKey" transform="rotate(0 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(15 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(30 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(45 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(60 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(75 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(90 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(105 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(120 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(135 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(150 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(165 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(180 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(195 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(210 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(225 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(240 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(255 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(270 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(285 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(300 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(315 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(330 200 200) translate(200,52)"></use><use href="#hlKey" transform="rotate(345 200 200) translate(200,52)"></use>
+</g>
+
+
+<circle cx="200" cy="200" r="156" fill="none" stroke="#D9A441" stroke-width="1.1" opacity="0.5"></circle>
+<text font-family="'Bricolage Grotesque',sans-serif" font-weight="800" fill="#D9A441" letter-spacing="6" font-size="30">
+<textPath href="#hlTopArc" startOffset="50%" text-anchor="middle">HOLEY LIFT</textPath></text>
+<text font-family="'Plus Jakarta Sans',sans-serif" font-weight="700" fill="#D9A441" letter-spacing="2.6" font-size="11.5" opacity="0.85">
+<textPath href="#hlBotArc" startOffset="50%" text-anchor="middle">MEMBER · SUPPORTED · CHURCH · RIDES</textPath></text>
+<g fill="#D9A441"><path d="M62,200 l6,-6 l6,6 l-6,6 z"></path><path d="M338,200 l-6,-6 l-6,6 l6,6 z"></path></g>
+
+
+<circle cx="200" cy="200" r="132" fill="url(#hlInner)" stroke="#D9A441" stroke-width="1.6"></circle>
+<circle cx="200" cy="200" r="126" fill="none" stroke="#D9A441" stroke-width="1" opacity="0.55"></circle>
+
+
+<g>
+<path d="M138,150 Q170,138 200,142 Q230,146 262,138 L256,170 Q228,178 200,174 Q172,170 144,180 Z" fill="#D9A441"></path>
+<path d="M146,153 Q173,144 200,147 Q227,150 254,144" fill="none" stroke="#E4BA6B" stroke-width="2.4"></path>
+<path d="M148,168 Q174,160 200,163 Q226,166 252,159" fill="none" stroke="#E4BA6B" stroke-width="2.4"></path>
+<path d="M164,148 L172,172 M200,145 L200,173 M236,145 L228,172" stroke="#1F2A44" stroke-width="1.6" opacity="0.75"></path>
+<path d="M138,150 l-9,-6 M138,150 l-4,-10 M262,138 l9,-5 M262,138 l4,-10" stroke="#D9A441" stroke-width="3" stroke-linecap="round"></path>
+</g>
+
+
+<path d="M160,176 Q168,208 200,214 Q232,208 240,176" fill="none" stroke="#D9A441" stroke-width="3.4" stroke-linecap="round"></path>
+<path d="M200,214 L200,232" stroke="#D9A441" stroke-width="3.4" stroke-linecap="round"></path>
+<circle cx="200" cy="214" r="4.5" fill="#D9A441"></circle>
+
+
+<g fill="#D9A441" stroke="#1F2A44" stroke-width="1.4" stroke-linejoin="round">
+<use href="#hlHand" transform="rotate(-52 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(-40 200 200) translate(200,300)"></use>
+<use href="#hlHand" transform="rotate(-20 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(-8 200 200) translate(200,300)"></use>
+<use href="#hlHand" transform="rotate(8 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(20 200 200) translate(200,300)"></use>
+<use href="#hlHand" transform="rotate(40 200 200) translate(200,300)"></use><use href="#hlHand" transform="rotate(52 200 200) translate(200,300)"></use>
+</g>
+</svg>`;
+
+export default function LogoCoin({ size = 96 }: { size?: number }) {
+  return <SvgXml xml={xml} width={size} height={size} />;
+}

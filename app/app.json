@@ -1,12 +1,20 @@
 {
   "expo": {
-    "name": "Holy Roof Rides",
+    "name": "Holey Lift",
     "slug": "holy-roof-rides",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "assetBundlePatterns": ["**/*"],
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1F2A44"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "bundleIdentifier": "com.holyroofrides.app",
       "supportsTablet": false,
@@ -16,7 +24,14 @@
     },
     "android": {
       "package": "com.holyroofrides.app",
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1F2A44"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "plugins": [
       [
@@ -24,7 +39,8 @@
         {
           "locationWhenInUsePermission": "Holy Roof Rides shows your position on the map and shares it with your matched ride only while a ride is active. Location is never stored."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

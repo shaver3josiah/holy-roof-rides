@@ -1,9 +1,13 @@
-# Holy Roof Rides 🚗⛪
+# Holey Lift 🚗⛪
 
 An open-source rideshare app for churches. Members ask for rides, other
 members give them, and a deacon approves everyone who joins — so it's never
 open to strangers off the street. It runs on a server your church controls,
 and it doesn't keep a record of anyone's trips.
+
+Holey Lift is the user-facing brand for this project; the codebase itself —
+this repo, the server, the app's bundle IDs — keeps its original name,
+**Holy Roof Rides**.
 
 No fares, no tips, no ratings. This is ministry, not a taxi business.
 
@@ -122,6 +126,12 @@ holy-roof-rides/
 ├── docs/                 PRIVACY.md, ARCHITECTURE.md, RESEARCH.md
 └── ROADMAP.md            what's built, what's next
 ```
+
+## Design
+
+Colors, type, spacing, motion, iconography, and voice/copy guidelines live in
+[`docs/DESIGN.md`](docs/DESIGN.md) — start there before touching UI or
+writing new copy.
 
 ## License
 

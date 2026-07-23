@@ -4,9 +4,22 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import {
+  BricolageGrotesque_700Bold,
+  BricolageGrotesque_800ExtraBold,
+} from '@expo-google-fonts/bricolage-grotesque';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import { SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
+import { Settings as SettingsIcon } from 'lucide-react-native';
 import * as api from './src/api';
 import { clearAuth, loadAuth, loadSettings } from './src/store';
-import { colors, spacing, styles } from './src/theme';
+import { colors, fonts, palette, spacing, styles } from './src/theme';
 import type { Mode, User } from './src/types';
 import JoinScreen from './src/screens/JoinScreen';
 import PinLoginScreen from './src/screens/PinLoginScreen';
@@ -86,16 +99,18 @@ function ModeToggle() {
           accessibilityState={{ selected: mode === opt.key }}
           style={{
             flex: 1,
+            minHeight: 44,
             paddingVertical: 10,
             borderRadius: 999,
             alignItems: 'center',
+            justifyContent: 'center',
             backgroundColor: mode === opt.key ? colors.primary : 'transparent',
           }}
         >
           <Text
             style={{
-              fontWeight: '600',
-              color: mode === opt.key ? '#fff' : colors.muted,
+              fontFamily: fonts.sansSemiBold,
+              color: mode === opt.key ? palette.white : colors.text,
             }}
           >
             {opt.label}
@@ -132,10 +147,10 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
           paddingVertical: spacing.s,
         }}
       >
-        <Text style={[styles.h2, { flex: 1 }]}>Holy Roof Rides</Text>
+        <Text style={[styles.h2, { flex: 1, fontFamily: fonts.display }]}>Holey Lift</Text>
         {session.user.isDeacon && (
           <Pressable onPress={() => navigation.navigate('Admin')} style={{ padding: spacing.s }}>
-            <Text style={{ color: colors.primary, fontWeight: '600' }}>Admin</Text>
+            <Text style={{ color: colors.primary, fontFamily: fonts.sansSemiBold }}>Admin</Text>
           </Pressable>
         )}
         <Pressable
@@ -144,7 +159,7 @@ function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, '
           accessibilityRole="button"
           accessibilityLabel="Settings"
         >
-          <Text style={{ fontSize: 20 }}>⚙️</Text>
+          <SettingsIcon size={22} color={colors.primary} />
         </Pressable>
       </View>
       <ModeToggle />
@@ -158,6 +173,17 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [mode, setMode] = useState<Mode>('receive');
   const [savedPhone, setSavedPhone] = useState<string | null>(null);
+  // On a load error we proceed with system fonts rather than blocking the app.
+  const [fontsLoaded, fontError] = useFonts({
+    BricolageGrotesque_700Bold,
+    BricolageGrotesque_800ExtraBold,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    SpaceMono_700Bold,
+  });
+  const fontsReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
     (async () => {
@@ -193,7 +219,7 @@ export default function App() {
   const sessionValue = useMemo(() => ({ session, setSession, signOut }), [session, signOut]);
   const modeValue = useMemo(() => ({ mode, setMode }), [mode]);
 
-  if (!ready) {
+  if (!ready || !fontsReady) {
     return (
       <View style={[styles.screen, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={colors.primary} />

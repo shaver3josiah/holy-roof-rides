@@ -8,8 +8,9 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
+import { CarFront, Church } from 'lucide-react-native';
 import type { LatLng } from '../types';
-import { colors } from '../theme';
+import { colors, fonts } from '../theme';
 
 // OpenStreetMap's standard raster tile server. Its usage policy
 // (https://operations.osmfoundation.org/policies/tiles/) requires visible
@@ -122,7 +123,11 @@ export default function OsmMap({
               anchor={{ x: 0.5, y: 0.5 }}
             >
               <View style={chipStyles.chip}>
-                <Text style={chipStyles.emoji}>{m.kind === 'car' ? '🚗' : '⛪'}</Text>
+                {m.kind === 'car' ? (
+                  <CarFront size={18} color={colors.accent} />
+                ) : (
+                  <Church size={18} color={colors.primary} />
+                )}
               </View>
             </Marker>
           ) : (
@@ -153,9 +158,6 @@ const chipStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: {
-    fontSize: 18,
-  },
 });
 
 const attributionStyles = StyleSheet.create({
@@ -169,6 +171,7 @@ const attributionStyles = StyleSheet.create({
     borderRadius: 4,
   },
   text: {
+    fontFamily: fonts.sans,
     fontSize: 10,
     color: colors.text,
   },

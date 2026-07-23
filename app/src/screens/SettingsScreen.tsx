@@ -5,13 +5,15 @@
 // - Signed in as: name / phone / role. Sign out button -> useSession().signOut().
 // - Small privacy blurb: what is (and is not) stored. Link to PRIVACY.md ideas.
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ShieldCheck } from 'lucide-react-native';
 import type { RootStackParamList } from '../../App';
 import { useMode, useSession } from '../../App';
 import * as api from '../api';
 import { loadSettings, saveSettings } from '../store';
-import { colors, spacing, styles } from '../theme';
+import { Badge, Banner, Button } from '../components/ui';
+import { colors, fonts, spacing, styles } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -99,26 +101,27 @@ export default function SettingsScreen(_props: Props) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ padding: spacing.l }}>
       {error && (
-        <View style={[styles.card, { borderColor: colors.danger, marginBottom: spacing.m }]}>
-          <Text style={[styles.body, { color: colors.danger }]}>{error}</Text>
-        </View>
+        <Banner kind="error" style={{ marginBottom: spacing.m }}>
+          {error}
+        </Banner>
       )}
 
       {session && (
         <View style={[styles.card, { marginBottom: spacing.m }]}>
           <Text style={[styles.mutedText, { marginBottom: spacing.xs }]}>Signed in as</Text>
-          <Text style={styles.h2}>{session.user.name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[styles.h2, { flex: 1 }]}>{session.user.name}</Text>
+            {session.user.isDeacon && <Badge label="DEACON" />}
+          </View>
           <Text style={[styles.body, { color: colors.muted, marginTop: 2 }]}>{session.user.phone}</Text>
-          <Text style={[styles.body, { color: colors.muted, marginTop: 2 }]}>
-            {session.user.isDeacon ? 'Deacon' : 'Member'}
-          </Text>
-          <Pressable
-            style={[styles.buttonSecondary, { marginTop: spacing.m }]}
+          <Button
+            label="Sign out"
             onPress={onSignOut}
+            loading={signingOut}
             disabled={signingOut}
-          >
-            <Text style={styles.buttonSecondaryText}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>
-          </Pressable>
+            variant="secondary"
+            style={{ marginTop: spacing.m }}
+          />
         </View>
       )}
 
@@ -145,7 +148,7 @@ export default function SettingsScreen(_props: Props) {
           Only change this if your church leader gave you a different address.
         </Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { fontFamily: fonts.mono, fontSize: 14 }]}
           value={serverUrl}
           onChangeText={(t) => {
             setServerUrl(t);
@@ -157,20 +160,23 @@ export default function SettingsScreen(_props: Props) {
           placeholder="http://..."
           placeholderTextColor={colors.muted}
         />
-        <Pressable
-          style={[styles.button, { marginTop: spacing.m }, !urlChanged && { opacity: 0.5 }]}
+        <Button
+          label={savingUrl ? 'Saving…' : 'Save server address'}
           onPress={onSaveServerUrl}
           disabled={savingUrl || !urlChanged}
-        >
-          <Text style={styles.buttonText}>{savingUrl ? 'Saving…' : 'Save server address'}</Text>
-        </Pressable>
+          loading={savingUrl}
+          style={{ marginTop: spacing.m }}
+        />
         {urlJustSaved && (
           <Text style={[styles.mutedText, { color: colors.success, marginTop: spacing.s }]}>Saved.</Text>
         )}
       </View>
 
       <View style={styles.card}>
-        <Text style={[styles.h2, { marginBottom: spacing.s }]}>Your privacy</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.s }}>
+          <ShieldCheck size={20} color={colors.heading} style={{ marginRight: spacing.xs }} />
+          <Text style={styles.h2}>Your privacy</Text>
+        </View>
         <Text style={[styles.body, { marginBottom: spacing.s }]}>
           We store your name, phone number, invite and approval records, and any safety
           reports filed about a ride.

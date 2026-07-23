@@ -143,3 +143,20 @@ TLS. Tokens and PINs therefore cross the local network unencrypted — fine for
 a home/church Wi-Fi, not for the open internet. If you expose the server
 publicly, put it behind an HTTPS reverse proxy (Caddy does this in two lines)
 and give members the `https://` address instead.
+
+## Server hosting (Oracle Cloud, $0)
+
+Don't have a machine to run the server on? [`deploy/oracle/ORACLE.md`](../deploy/oracle/ORACLE.md)
+walks through first-time setup on Oracle Cloud's Always Free tier, a real
+always-on server for $0/month, numbered step by step for someone who's
+never opened a cloud console before.
+
+Once that's done, add three repository secrets (GitHub repo, Settings,
+Secrets and variables, Actions, New repository secret) and push-to-deploy
+turns on: `VM_HOST` (the server's IP), `VM_USER` (`ubuntu`), and
+`VM_SSH_KEY` (the private key that logs into it). From then on, every push
+to `main` that touches `server/` runs
+[`.github/workflows/deploy-server.yml`](../.github/workflows/deploy-server.yml),
+which SSHes in, pulls the latest code, and restarts the service. **The
+private key itself never gets committed anywhere**, it only ever gets
+pasted into that Secrets box, nothing else reads it.

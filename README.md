@@ -46,7 +46,7 @@ once the app has a first coat of paint._
 You don't need to be a developer to do this — just comfortable typing a few
 commands. You'll need a computer or a small server that can stay on and
 reachable (a $5/month VPS works great; so does an old laptop on your church
-network).
+network). Don't want to pay even that? [Run it free on Oracle Cloud](deploy/oracle/ORACLE.md).
 
 ### 1. Get a server running
 

@@ -1,0 +1,33 @@
+name: Deploy server
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "server/**"
+      - "deploy/**"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # GitHub Actions forbids referencing `secrets` directly inside an `if:`
+    # conditional ("Unrecognized named-value: 'secrets'") — compute it into a
+    # job-level env var here instead, which `if:` steps below CAN read. See
+    # android-apk.yml's HAS_KEYSTORE for the same pattern.
+    env:
+      HAS_VM: ${{ secrets.VM_HOST != '' }}
+    steps:
+      # Repos/forks with no VM_* secrets set skip this step and the job still
+      # goes green, instead of failing on missing secrets.
+      - name: Deploy over SSH
+        if: ${{ env.HAS_VM == 'true' }}
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            sudo -n true || { echo "Passwordless sudo required for the ubuntu user on the VM (see deploy/oracle/ORACLE.md)" >&2; exit 1; }
+            cd /opt/holy-roof-rides && git pull --ff-only && cd server && npm ci --omit=dev && sudo systemctl restart holyroofrides && systemctl is-active holyroofrides
